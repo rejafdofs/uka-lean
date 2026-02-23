@@ -18,6 +18,8 @@ globs = [
   "UkaLean.Responsum",
   "UkaLean.Nuculum",
   "UkaLean.Exporta",
+  "UkaLean.StatusPermanens",
+  "UkaLean.Macro",
 ]
 
 # 試驗用實行體にゃん（ライブラリ利用者には不要にゃ）

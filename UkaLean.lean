@@ -20,3 +20,5 @@ import UkaLean.Rogatio
 import UkaLean.Responsum
 import UkaLean.Nuculum
 import UkaLean.Exporta
+import UkaLean.StatusPermanens
+import UkaLean.Macro

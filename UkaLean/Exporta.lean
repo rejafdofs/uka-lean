@@ -15,6 +15,15 @@ def registraShiori (tractatores : List (String × Tractator)) : IO Unit := do
   let s ← Shiori.creare tractatores
   shioriGlobalis.set (some s)
 
+/-- フック付き版の登錄關數にゃん♪
+    永続化ゴーストはこちらを使ふにゃ -/
+def registraShioriEx
+    (tractatores : List (String × Tractator))
+    (onOnerare   : Option (String → IO Unit) := none)
+    (onExire     : Option (IO Unit)          := none) : IO Unit := do
+  let s ← Shiori.creare tractatores onOnerare onExire
+  shioriGlobalis.set (some s)
+
 /-- 栞が登錄濟みか確認するにゃん -/
 def estRegistrata : IO Bool := do
   let opt ← shioriGlobalis.get
@@ -42,6 +51,10 @@ unsafe def exportaLoad (dirStr : @& String) : IO UInt32 := do
   match opt with
   | some s =>
     s.statuereDomus dirStr
+    -- 讀込フックがあれば呼ぶにゃん♪（永続化ダータの復元にゃ）
+    match s.onOnerare with
+    | some actio => actio dirStr
+    | none       => pure ()
     return 1  -- TRUE にゃ
   | none =>
     return 0  -- FALSE: 栞が登錄されてにゃいにゃ
@@ -49,6 +62,14 @@ unsafe def exportaLoad (dirStr : @& String) : IO UInt32 := do
 /-- C 側の unload() から呼ばれるにゃん -/
 @[export lean_shiori_unload]
 unsafe def exportaUnload : IO UInt32 := do
+  -- 書出フックがあれば呼ぶにゃん♪（永続化ダータの保存にゃ）
+  let opt ← shioriGlobalis.get
+  match opt with
+  | some s =>
+    match s.onExire with
+    | some actio => actio
+    | none       => pure ()
+  | none => pure ()
   return 1  -- TRUE にゃ
 
 /-- C 側の request() から呼ばれるにゃん。

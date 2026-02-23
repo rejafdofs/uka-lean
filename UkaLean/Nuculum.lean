@@ -25,13 +25,19 @@ structure Shiori where
   tractatores : List (String × Tractator)
   /-- 栞の可變狀態にゃ -/
   status : IO.Ref ShioriStatus
+  /-- 讀込(load)時に呼ばれるフックにゃん。domus（家ディレクトーリウム）を受け取るにゃ -/
+  onOnerare : Option (String → IO Unit) := none
+  /-- 書出(unload)時に呼ばれるフックにゃん -/
+  onExire   : Option (IO Unit)          := none
 
 namespace Shiori
 
 /-- 處理器一覽から栞を構築するにゃん -/
-def creare (tractatores : List (String × Tractator)) : IO Shiori := do
+def creare (tractatores : List (String × Tractator))
+    (onOnerare : Option (String → IO Unit) := none)
+    (onExire   : Option (IO Unit)          := none) : IO Shiori := do
   let status ← IO.mkRef ({} : ShioriStatus)
-  return { tractatores, status }
+  return { tractatores, status, onOnerare, onExire }
 
 /-- 家ディレクトーリウムを設定するにゃん -/
 def statuereDomus (s : Shiori) (domus : String) : IO Unit := do
