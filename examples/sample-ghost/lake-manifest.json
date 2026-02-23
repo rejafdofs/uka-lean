@@ -1,0 +1,12 @@
+{"version": "1.1.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"type": "path",
+   "scope": "",
+   "name": "UkaLean",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../..",
+   "configFile": "lakefile.toml"}],
+ "name": "«sample-ghost»",
+ "lakeDir": ".lake"}
