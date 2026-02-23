@@ -3,6 +3,7 @@
 -- お嬢樣はここに處理器を追加していくにゃ
 
 import UkaLean
+import SampleGhost.Memoria
 
 namespace SampleGhost
 
@@ -17,8 +18,15 @@ private def includes (haystack needle : String) : Bool :=
 -- ════════════════════════════════════════════════════
 
 /-- 起動時にゃん（OnBoot）
-    Reference0: 起動理由（"0"=通常, "1"=前回異常終了）-/
+    ★ ここでダータを讀み込んで大域狀態を初期化するにゃ -/
 def onBoot (r : Rogatio) : SakuraIO Unit := do
+  -- ① 家ディレクトーリウムを取得してダータを讀み込むにゃ
+  let domus ← UkaLean.domusObtinere
+  let data  ← GhostData.onerare domus
+  -- ② 訪問回數を増やして狀態を更新するにゃん
+  let data' := { data with visitCount := data.visitCount + 1 }
+  ghostState.set data'
+  -- ③ 起動セリフにゃ
   sakura; superficies 0
   match r.ref 0 with
   | some "1" =>
@@ -26,14 +34,21 @@ def onBoot (r : Rogatio) : SakuraIO Unit := do
     mora 500; linea
     loqui "でも今日は大丈夫にゃん♪"
   | _ =>
-    loqui "おはやうにゃん！今日も一緒にゐるにゃ♪"
-    mora 300; linea
-    kero; superficies 10
-    loqui "よろしくお願ひいたします。"
+    if data'.visitCount == 1 then
+      -- 初回起動は onFirstBoot に任せるにゃ（ここには來にゃいはずにゃが念のため）
+      loqui "はじめましてにゃん♪"
+    else
+      loqui s!"おはやうにゃん！{data'.visitCount}回目の起動にゃ♪"
+      mora 300; linea
+      kero; superficies 10
+      loqui "よろしくお願ひいたします。"
   finis
 
 /-- 初回起動にゃん（OnFirstBoot）-/
 def onFirstBoot (_ : Rogatio) : SakuraIO Unit := do
+  -- 初回なのでダータは既定値にゃ。訪問回數 1 にするにゃん
+  let data' : GhostData := { visitCount := 1 }
+  ghostState.set data'
   sakura; superficies 5
   loqui "はじめましてにゃん！"
   mora 600; linea
@@ -46,8 +61,13 @@ def onFirstBoot (_ : Rogatio) : SakuraIO Unit := do
   finis
 
 /-- 終了時にゃん（OnClose）
-    Reference0: 終了理由（"0"=通常, "1"=OS 終了）-/
+    ★ ここで大域狀態をダータファスキクルスに保存するにゃ -/
 def onClose (r : Rogatio) : SakuraIO Unit := do
+  -- ① 現在の狀態を取得して保存するにゃ
+  let domus ← UkaLean.domusObtinere
+  let data  ← ghostState.get
+  data.servare domus
+  -- ② 終了セリフにゃん
   sakura; superficies 3
   match r.ref 0 with
   | some "1" =>
@@ -64,13 +84,18 @@ def onClose (r : Rogatio) : SakuraIO Unit := do
 -- ════════════════════════════════════════════════════
 
 /-- 滑鼠二重打鍵にゃん（OnMouseDoubleClick）
-    Reference3: 範圍（"0"=主人格, "1"=副人格）
-    Reference4: 觸れた部位名 -/
+    頭を撫でると親密度が上がるにゃ♪ -/
 def onMouseDoubleClick (r : Rogatio) : SakuraIO Unit := do
   match r.ref 3, r.ref 4 with
   | some "0", some "Head" =>
+    -- ★ 親密度を増やすにゃん
+    ghostState.modify (fun d => { d with affinity := min 100 (d.affinity + 1) })
+    let data ← ghostState.get
     sakura; superficies 5
-    loqui "撫でてくれるにゃ？にゃーん♪"
+    if data.affinity >= 50 then
+      loqui "もうすっかり仲良しにゃん♪ にゃーん！"
+    else
+      loqui s!"撫でてくれるにゃ？嬉しいにゃん♪（親密度: {data.affinity}）"
     finis
   | some "0", some "Face" =>
     sakura; superficies 9
@@ -112,12 +137,8 @@ def onMouseClick (r : Rogatio) : SakuraIO Unit := do
 --  時刻 (Tempus)
 -- ════════════════════════════════════════════════════
 
-/-- 每分の時刻通知にゃん（OnMinuteChange）
-    Reference0: 時、Reference1: 分 -/
+/-- 每分の時刻通知にゃん（OnMinuteChange）-/
 def onMinuteChange (r : Rogatio) : SakuraIO Unit := do
-  -- ★ 具體的にゃケースを先に書くにゃん！
-  --   Lean は上から順に照合するから、
-  --   some h, some "00" より前に特殊ケースを置くにゃ
   match r.ref 0, r.ref 1 with
   | some "07", some "30" =>
     sakura; superficies 5
@@ -142,12 +163,14 @@ def onMinuteChange (r : Rogatio) : SakuraIO Unit := do
 -- ════════════════════════════════════════════════════
 
 /-- 使用者のテキスト入力にゃん（OnCommunicate）
-    Reference0: 入力文字列 -/
+    最後に言はれた言葉を記憶するにゃ♪ -/
 def onCommunicate (r : Rogatio) : SakuraIO Unit := do
   sakura; superficies 0
   match r.ref 0 with
   | none => finis
   | some input =>
+    -- ★ 最後の言葉を記憶するにゃん
+    ghostState.modify (fun d => { d with lastWords := input })
     if includes input "ありがとう" then do
       superficies 4
       loqui "どういたしましてにゃん♪"
@@ -178,8 +201,7 @@ def onGhostChanging (_ : Rogatio) : SakuraIO Unit := do
   loqui "いってらっしゃいにゃん。"
   finis
 
-/-- 他のゴーストから戾ってきた時にゃん（OnGhostChanged）
-    Reference3: 前のゴースト名 -/
+/-- 他のゴーストから戾ってきた時にゃん（OnGhostChanged）-/
 def onGhostChanged (r : Rogatio) : SakuraIO Unit := do
   sakura; superficies 5
   match r.ref 3 with

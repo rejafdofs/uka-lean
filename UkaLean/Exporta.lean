@@ -20,6 +20,15 @@ def estRegistrata : IO Bool := do
   let opt ← shioriGlobalis.get
   return opt.isSome
 
+/-- 家ディレクトーリウム（ゴーストのフォルダー）を取得するにゃん。
+    OnBoot や OnClose 等の處理器からダータ保存先を知る時に使ふにゃ♪
+    load() が呼ばれる前は空文字列を返すにゃ -/
+def domusObtinere : IO String := do
+  let opt ← shioriGlobalis.get
+  match opt with
+  | some s => s.obtinereDomus
+  | none   => return ""
+
 -- ═══════════════════════════════════════════════════
 -- C から呼ばれる輸出關數群にゃん
 -- ffi/shiori.c の load/unload/request がこれらを呼ぶにゃ

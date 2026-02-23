@@ -4,6 +4,7 @@
 -- initialize ブロックで UkaLean に處理器を登錄するにゃん。
 
 import UkaLean
+import SampleGhost.Memoria
 import SampleGhost.Handlers
 
 -- ★ これがポイントにゃん！
