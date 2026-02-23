@@ -84,17 +84,17 @@ ghost_on "事象名" fun req => do
 
 | 式 | 型 | 内容 |
 |---|---|---|
-| `req.id` | `String` | 事象名（"OnBoot" 等）|
-| `req.ref 0` | `Option String` | Reference0 |
-| `req.ref 1` | `Option String` | Reference1 |
+| `req.nomen` | `String` | 事象名（"OnBoot" 等）|
+| `req.referentiam 0` | `Option String` | Reference0 |
+| `req.referentiam 1` | `Option String` | Reference1 |
 | `req.mittens` | `Option String` | Sender 頭部 |
 | `req.caput "キー"` | `Option String` | 任意の頭部 |
 
-`req.ref n` の使ひ方:
+`req.referentiamn` の使ひ方:
 
 ```lean
 ghost_on "OnMouseDoubleClick" fun req => do
-  match req.ref 4 with
+  match req.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？"
   | _           => sakura; superficies 0; loqui "なでなでにゃ"
@@ -246,16 +246,16 @@ ghost_on "OnClose" fun _ => do
 
 ghost_on "OnMouseDoubleClick" fun req => do
   talkCount.modify (· + 1)
-  match req.ref 4 with
+  match req.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ？嬉しいにゃん♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？ 顏は恥づかしいにゃ…"
   | _           => sakura; superficies 0; loqui "なでなでにゃ"
   finis
 
 ghost_on "OnMinuteChange" fun req => do
-  match req.ref 1 with
+  match req.referentiam 1 with
   | some "00" =>
-    let h := (req.ref 0).getD "?"
+    let h := (req.referentiam 0).getD "?"
     sakura; superficies 0
     loquiEtLinea s!"{h}時ちょうどにゃん♪"
     finis
@@ -295,18 +295,119 @@ initialize
 
 ---
 
-## DLL 構築（SHIORI.DLL）
+## DLL 構築と配置（SSP で動かすまで）
+
+### 0. ゴーストのディレクトーリウム構造（SSP の場合）
+
+SSP で動かすには、`ghost/master/` ディレクトーリウムに `shiori.dll` を置くにゃ。
+最終的に以下のやうな構成になるにゃん：
+
+```
+SSP/
+└── ghost/
+    └── (ゴースト名)/
+        ├── descript.txt
+        ├── shell/
+        │   └── master/          ← シェル画像
+        └── ghost/
+            └── master/
+                ├── shiori.dll   ← ★ ここに配置するにゃ
+                ├── ghost_status.dat   ← 永続化ダータ（自動生成にゃ）
+                └── (その他ゴーストファスキクルス)
+```
+
+---
+
+### 1. Lean ビブリオテーカを構築するにゃ
 
 ```bash
+# uka.lean のディレクトーリウムで実行するにゃ
 lake build
-gcc -shared -o shiori.dll ffi/shiori.c \
+```
+
+`.lake/build/lib/` に `libUkaLean.a`（静的ビブリオテーカ）が生成されるにゃ。
+
+---
+
+### 2. 自分のゴーストの Lean ファスキクルスを作るにゃ
+
+`MyGhost.lean` のやうなファスキクルスを作るにゃ：
+
+```lean
+-- MyGhost.lean
+import UkaLean
+open UkaLean Sakura
+
+ghost_var persistent greetCount : Nat := 0
+
+ghost_on "OnBoot" fun _ => do
+  greetCount.modify (· + 1)
+  let n ← greetCount.get
+  sakura; superficies 0
+  loquiEtLinea s!"起動 {n} 囘目にゃん！"
+  finis
+
+ghost_on "OnClose" fun _ => do
+  sakura; superficies 3
+  loquiEtLinea "またにゃー！"
+  finis
+
+build_ghost
+```
+
+---
+
+### 3. shiori.c をゴーストの作業ディレクトーリウムにコピーするにゃ
+
+`ffi/shiori.c` は UkaLean リポジトーリウムに含まれているにゃ。
+ゴーストを作る際は、`ffi/shiori.c` を自分の作業ディレクトーリウムにコピーして使ふにゃ：
+
+```
+(自分のゴースト作業場)/
+├── MyGhost.lean   ← 自分で書いたゴーストにゃ
+├── shiori.c       ← uka.lean/ffi/shiori.c をコピーにゃ
+└── (生成される shiori.dll など)
+```
+
+---
+
+### 4. shiori.dll をコンパイルするにゃ
+
+MinGW (gcc) で DLL を作るにゃ。`lake build` を先に實行しておくにゃん：
+
+```bash
+# ① Lean ビブリオテーカを構築にゃ（uka.lean のディレクトーリウムで）
+cd /path/to/uka.lean
+lake build
+
+# ② DLL をコンパイルにゃ（自分の作業ディレクトーリウムで）
+gcc -shared -o shiori.dll shiori.c \
   -I$(lean --print-prefix)/include \
-  -L.lake/build/lib -lUkaLean \
+  -L/path/to/uka.lean/.lake/build/lib -lUkaLean \
   -L$(lean --print-prefix)/lib/lean -lleanrt \
   -lws2_32 -lgmp -lpthread
 ```
 
-生成された `shiori.dll` をゴーストの `ghost/master/` に置けば SSP が讀み込むにゃ。
+> **Lean のパスを調べるにゃ:** `lean --print-prefix` で表示されるにゃ。
+> 例: `C:/Users/(名前)/.elan/toolchains/leanprover--lean4---v4.28.0`
+
+---
+
+### 5. ゴーストの ghost/master/ に配置するにゃ
+
+```bash
+cp shiori.dll /path/to/SSP/ghost/(ゴースト名)/ghost/master/
+```
+
+必要にゃファスキクルスは `shiori.dll` 一つだけにゃ。
+（Lean ランタイムは静的にゃリンクされているにゃ）
+
+---
+
+### 6. SSP で起動して確認にゃ
+
+SSP でゴーストを起動して OnBoot が動けば成功にゃん♪
+`ghost_status.dat` は `ghost/master/` に自動的に生成されるにゃ。
 
 ---
 

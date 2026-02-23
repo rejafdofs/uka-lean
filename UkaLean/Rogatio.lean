@@ -9,18 +9,18 @@ namespace UkaLean
 structure Rogatio where
   /-- 手法: GET または NOTIFY -/
   methodus    : Methodus
-  /-- 事象識別子（例: "OnBoot", "OnMouseDoubleClick"）-/
-  id          : String
+  /-- 事象名（例: "OnBoot", "OnMouseDoubleClick"）-/
+  nomen       : String
   /-- Reference 頭部の配列。Reference0, Reference1, ... の順にゃ -/
   referentiae : Array String
-  /-- 文字符號化方式（既定 "UTF-8"）-/
-  charset     : String
+  /-- 文字符號化形式（既定 "UTF-8"）-/
+  forma       : String
   /-- 送信者（Sender 頭部）-/
   mittens     : Option String
   /-- 安全等級（SecurityLevel 頭部）-/
   securitas   : Option String
-  /-- 基底事象（BaseID 頭部）-/
-  baseId      : Option String
+  /-- 基底事象名（BaseID 頭部）-/
+  nomenBasis  : Option String
   /-- 全頭部の生ダータ(data)にゃん -/
   cappitta    : List (String × String)
   deriving Repr, Inhabited
@@ -28,7 +28,7 @@ structure Rogatio where
 namespace Rogatio
 
 /-- Reference の第 n 番を取得するにゃん -/
-def ref (r : Rogatio) (n : Nat) : Option String :=
+def referentiam (r : Rogatio) (n : Nat) : Option String :=
   if h : n < r.referentiae.size then some r.referentiae[n] else none
 
 /-- 任意の頭部を名前で取得するにゃん -/
@@ -72,8 +72,8 @@ private def parseLineaPrima (s : String) : Except String Methodus := do
     "Reference3" → some 3 -/
 private def referentiaIndex (clavis : String) : Option Nat :=
   if clavis.startsWith "Reference" then
-    let numStr := clavis.drop "Reference".length
-    numStr.toNat?
+    let catena := clavis.drop "Reference".length
+    catena.toNat?
   else
     none
 
@@ -82,8 +82,8 @@ private def trimma (s : String) : String :=
   String.ofList (s.toList.dropWhile Char.isWhitespace
     |>.reverse |>.dropWhile Char.isWhitespace |>.reverse)
 
-/-- SHIORI/3.0 要求文字列を完全に構文解析するにゃん -/
-def parse (s : String) : Except String Rogatio := do
+/-- SHIORI/3.0 要求文字列を完全に解釈するにゃん -/
+def interpreta (s : String) : Except String Rogatio := do
   -- CR+LF で行に分割
   let lineae := s.splitOn crlf
   match lineae with
@@ -102,22 +102,22 @@ def parse (s : String) : Except String Rogatio := do
       | none => pure ()  -- 解析できにゃい行は無視にゃ
 
     -- 既知の頭部を抽出するにゃん
-    let id := match cappitta.lookup "ID" with
+    let nomen := match cappitta.lookup "ID" with
       | some v => v
       | none => ""
 
-    let charset := (cappitta.lookup "Charset").getD "UTF-8"
-    let mittens := cappitta.lookup "Sender"
-    let securitas := cappitta.lookup "SecurityLevel"
-    let baseId := cappitta.lookup "BaseID"
+    let forma      := (cappitta.lookup "Charset").getD "UTF-8"
+    let mittens    := cappitta.lookup "Sender"
+    let securitas  := cappitta.lookup "SecurityLevel"
+    let nomenBasis := cappitta.lookup "BaseID"
 
     -- Reference 頭部を收集するにゃん
     let mut maxRef : Nat := 0
-    let mut refPairs : List (Nat × String) := []
+    let mut pariaNumerata : List (Nat × String) := []
     for (k, v) in cappitta do
       match referentiaIndex k with
       | some n =>
-        refPairs := refPairs ++ [(n, v)]
+        pariaNumerata := pariaNumerata ++ [(n, v)]
         if n + 1 > maxRef then maxRef := n + 1
       | none => pure ()
 
@@ -125,18 +125,18 @@ def parse (s : String) : Except String Rogatio := do
     let mut referentiae : Array String := #[]
     for _ in List.range maxRef do
       referentiae := referentiae.push ""
-    for (n, v) in refPairs do
+    for (n, v) in pariaNumerata do
       if h : n < referentiae.size then
         referentiae := referentiae.set n v
 
     return {
       methodus
-      id
+      nomen
       referentiae
-      charset
+      forma
       mittens
       securitas
-      baseId
+      nomenBasis
       cappitta
     }
 

@@ -43,7 +43,7 @@ def onClose (_ : Rogatio) : SakuraIO Unit := do
 def onMouseDoubleClick (r : Rogatio) : SakuraIO Unit := do
   -- Reference3 = 觸られたスコープ(scopus)
   -- Reference4 = 觸られた部位名
-  match r.ref 4 with
+  match r.referentiam 4 with
   | some "Head" =>
     sakura; superficies 5
     loqui "撫でてくれるのにゃ？嬉しいにゃん♪"
@@ -61,7 +61,7 @@ def onMouseDoubleClick (r : Rogatio) : SakuraIO Unit := do
 /-- 每分の時刻通知にゃん -/
 def onMinuteChange (r : Rogatio) : SakuraIO Unit := do
   -- Reference0 = 時, Reference1 = 分
-  match r.ref 0, r.ref 1 with
+  match r.referentiam 0, r.referentiam 1 with
   | some hour, some "00" =>
     sakura; superficies 0
     loqui s!"{hour}時ちょうどにゃん♪"

@@ -53,12 +53,12 @@ def obtinereDomus (s : Shiori) : IO String := do
 def tracta (s : Shiori) (rogatio : Rogatio) : IO Responsum := do
   -- NOTIFY の場合、Value は無視されるにゃん
   -- でも處理器は呼ぶにゃ（副作用のために）
-  match s.tractatores.lookup rogatio.id with
+  match s.tractatores.lookup rogatio.nomen with
   | some tractator =>
     -- SakuraScript モナドを實行して文字列を得るにゃん
     let scriptum ← Sakura.currere (tractator rogatio)
     match rogatio.methodus with
-    | .get => return Responsum.ok scriptum
+    | .pete     => return Responsum.ok scriptum
     | .notifica => return Responsum.nihil  -- NOTIFY は Value を返さにゃいにゃ
   | none =>
     -- 處理器が見つからにゃかった場合は 204 にゃ
@@ -66,7 +66,7 @@ def tracta (s : Shiori) (rogatio : Rogatio) : IO Responsum := do
 
 /-- 要求文字列を受け取り、應答文字列を返す一氣通貫の處理にゃん -/
 def tractaCatenam (s : Shiori) (reqStr : String) : IO String := do
-  match Rogatio.parse reqStr with
+  match Rogatio.interpreta reqStr with
   | .ok rogatio =>
     let responsum ← s.tracta rogatio
     return responsum.adProtocollum
