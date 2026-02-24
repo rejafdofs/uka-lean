@@ -21,7 +21,7 @@ lake new my-ghost lib
 cd my-ghost
 ```
 
-### ② `lakefile.lean` に `require` を追記するにゃ
+### ② `lakefile.toml` に `require` を追記するにゃ
 
 ```lean
 name = "my-ghost"
