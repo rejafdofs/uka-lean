@@ -8,14 +8,14 @@ import UkaLean.Exemplum
 open UkaLean
 
 /-- 模擬要求を構築する補助にゃん -/
-def fabricaRogationem (nomen : String) (ref : List (Nat × String) := []) : String :=
+def fabricaRogationem (nomen : String) (citationes : List (Nat × String) := []) : String :=
   let caput := "GET SHIORI/3.0" ++ crlf ++
     "Charset: UTF-8" ++ crlf ++
     "Sender: SSP" ++ crlf ++
     s!"ID: {nomen}" ++ crlf
-  let refStr := ref.foldl (fun acc (n, v) =>
-    acc ++ s!"Reference{n}: {v}" ++ crlf) ""
-  caput ++ refStr ++ crlf
+  let catenaCitationis := citationes.foldl (fun accumulatum (numerus, valor) =>
+    accumulatum ++ s!"Reference{numerus}: {valor}" ++ crlf) ""
+  caput ++ catenaCitationis ++ crlf
 
 def main : IO Unit := do
   let egressus ← IO.getStdout

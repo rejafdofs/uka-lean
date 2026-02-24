@@ -7,6 +7,11 @@ keywords = ["ukagaka", "shiori", "ghost", "sakura-script"]
 autoImplicit = false
 pp.unicode.fun = true
 
+[[require]]
+name = "batteries"
+scope = "leanprover-community"
+rev = "main"
+
 # ライブラリ本體にゃん。Exemplum（使用例）は含めにゃいにゃ
 [[lean_lib]]
 name = "UkaLean"

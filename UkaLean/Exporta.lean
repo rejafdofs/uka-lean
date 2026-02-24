@@ -46,14 +46,14 @@ def domusObtinere : IO String := do
 /-- C 側の load() から呼ばれるにゃん。
     家ディレクトーリウムを設定して初期化するにゃ -/
 @[export lean_shiori_load]
-unsafe def exportaLoad (dirStr : @& String) : IO UInt32 := do
+unsafe def exportaLoad (catenaDominis : @& String) : IO UInt32 := do
   let opt ← shioriGlobalis.get
   match opt with
   | some s =>
-    s.statuereDomus dirStr
+    s.statuereDomus catenaDominis
     -- 讀込フックがあれば呼ぶにゃん♪（永続化ダータの復元にゃ）
     match s.onOnerare with
-    | some actio => actio dirStr
+    | some actio => actio catenaDominis
     | none       => pure ()
     return 1  -- TRUE にゃ
   | none =>
@@ -75,11 +75,11 @@ unsafe def exportaUnload : IO UInt32 := do
 /-- C 側の request() から呼ばれるにゃん。
     SHIORI/3.0 要求文字列を受け取り、應答文字列を返すにゃ -/
 @[export lean_shiori_request]
-unsafe def exportaRequest (reqStr : @& String) : IO String := do
+unsafe def exportaRequest (catenaRogationis : @& String) : IO String := do
   let opt ← shioriGlobalis.get
   match opt with
   | some shiori =>
-    shiori.tractaCatenam reqStr
+    shiori.tractaCatenam catenaRogationis
   | none =>
     return Responsum.errorInternus.adProtocollum
 

@@ -98,7 +98,7 @@ def interpreta (s : String) : Except String Rogatio := do
       let linea := trimma l
       if linea.isEmpty then break  -- 空行で終了にゃ
       match parseCastellum linea with
-      | some kv => cappitta := cappitta ++ [kv]
+      | some parElementum => cappitta := cappitta ++ [parElementum]
       | none => pure ()  -- 解析できにゃい行は無視にゃ
 
     -- 既知の頭部を抽出するにゃん
@@ -112,18 +112,18 @@ def interpreta (s : String) : Except String Rogatio := do
     let nomenBasis := cappitta.lookup "BaseID"
 
     -- Reference 頭部を收集するにゃん
-    let mut maxRef : Nat := 0
+    let mut maximumIndex : Nat := 0
     let mut pariaNumerata : List (Nat × String) := []
     for (k, v) in cappitta do
       match referentiaIndex k with
       | some n =>
         pariaNumerata := pariaNumerata ++ [(n, v)]
-        if n + 1 > maxRef then maxRef := n + 1
+        if n + 1 > maximumIndex then maximumIndex := n + 1
       | none => pure ()
 
     -- 配列を構築するにゃん（空の配列から push で作るにゃ）
     let mut referentiae : Array String := #[]
-    for _ in List.range maxRef do
+    for _ in List.range maximumIndex do
       referentiae := referentiae.push ""
     for (n, v) in pariaNumerata do
       if h : n < referentiae.size then

@@ -3,6 +3,8 @@
 Lean 4 でうかがか(Ukagaka)ゴーストの栞を書くためのビブリオテーカにゃ。
 `do` 記法で型安全に SakuraScript を組み立てられるにゃん♪
 
+識別子はラテン語で統一されてゐるにゃ。
+
 ---
 
 ## クイックスタート
@@ -44,9 +46,9 @@ varia perpetua greetCount : Nat := 0
 
 eventum "OnBoot" fun _ => do
   greetCount.modify (· + 1)
-  let n ← greetCount.get
+  let numerus ← greetCount.get
   sakura; superficies 0
-  loqui s!"起動 {n} 囘目にゃん♪"
+  loqui s!"起動 {numerus} 囘目にゃん♪"
   finis
 
 eventum "OnClose" fun _ => do
@@ -59,7 +61,7 @@ construe
 
 ### ④ `ffi/shiori.c` を入手するにゃ
 
-この リポジトーリウム の `ffi/shiori.c` を自分のプロヱクトゥムの `ffi/` ディレクトーリウムに置くにゃ:
+このリポジトーリウムの `ffi/shiori.c` を自分のプロヱクトゥムの `ffi/` ディレクトーリウムに置くにゃ:
 
 ```
 my-ghost/
@@ -70,7 +72,7 @@ my-ghost/
     └── shiori.c   ← ここにゃ
 ```
 
-### ⑤ ビルドして DLL を作るにゃ
+### ⑤ 構築して DLL を作るにゃ
 
 ```bash
 lake build Ghost
@@ -91,24 +93,28 @@ gcc -shared -o shiori.dll ffi/shiori.c \
 ### `varia` — 全域變數の宣言
 
 ```lean
-varia perpetua  名前 : 型 := 初期値   -- 終了時に保存・起動時に復元するにゃ
+varia perpetua   名前 : 型 := 初期値   -- 終了時に保存・起動時に復元するにゃ
 varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存しにゃい）
 ```
 
 | | `perpetua` | `temporaria` |
 |---|---|---|
-| 保存先 | `{ghost}/ghost_status.dat` | なし |
+| 保存先 | `{ghost}/ghost_status.bin` | なし |
 | 起動時 | ファスキクルスから復元 | 初期値から始まる |
 | 用途 | 起動囘數・設定・フラグ等 | 今囘だけ使ふ情報 |
 
-使へる型: `Nat` `Int` `Bool` `String`（`StatusPermanens` クラスのインスタンスにゃ）
+使へる型: `Nat` `Int` `Bool` `String` `Float` 等（`StatusPermanens` クラスのインスタンスにゃ）
+
+**型安全な永続化にゃ♪**
+保存時に型を識別する `typusTag`（文字列）も一緒に保存するにゃ。
+ゴーストの更新で變數の型が變はっても、タグが不一致なら安全に讀み飛ばされるにゃん。
 
 變數は `IO.Ref` として展開されるにゃ。處理器の中から直接使へるにゃ:
 
 ```lean
-let n ← greetCount.get      -- 讀む
-greetCount.set 42            -- 書く
-greetCount.modify (· + 1)    -- 更新する
+let numerus ← greetCount.get   -- 讀む
+greetCount.set 42               -- 書く
+greetCount.modify (· + 1)       -- 更新する
 ```
 
 ---
@@ -116,27 +122,27 @@ greetCount.modify (· + 1)    -- 更新する
 ### `eventum` — 事象處理器の宣言
 
 ```lean
-eventum "事象名" fun req => do
-  -- req : Rogatio（SSP からの要求情報にゃ）
+eventum "事象名" fun rogatio => do
+  -- rogatio : Rogatio（SSP からの要求情報にゃ）
   ...
   finis   -- ★ 末尾に必ず書くにゃ
 ```
 
-`req` から取れるもの:
+`rogatio` から取れるもの:
 
 | 式 | 型 | 内容 |
 |---|---|---|
-| `req.nomen` | `String` | 事象名（"OnBoot" 等）|
-| `req.referentiam 0` | `Option String` | Reference0 |
-| `req.referentiam 1` | `Option String` | Reference1 |
-| `req.mittens` | `Option String` | Sender 頭部 |
-| `req.caput "クラーウィス"` | `Option String` | 任意の頭部 |
+| `rogatio.nomen` | `String` | 事象名（"OnBoot" 等）|
+| `rogatio.referentiam 0` | `Option String` | Reference0 |
+| `rogatio.referentiam 1` | `Option String` | Reference1 |
+| `rogatio.mittens` | `Option String` | Sender 頭部 |
+| `rogatio.caput "clavis"` | `Option String` | 任意の頭部 |
 
 使用例:
 
 ```lean
-eventum "OnMouseDoubleClick" fun req => do
-  match req.referentiam 4 with
+eventum "OnMouseDoubleClick" fun rogatio => do
+  match rogatio.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？"
   | _           => sakura; superficies 0; loqui "なでなでにゃ"
@@ -155,6 +161,7 @@ construe
 
 - `eventum` で宣言した全ての處理器を自動收集して登錄するにゃ
 - `perpetua` 變數がある場合は讀込・書出フックも自動生成されるにゃん♪
+- 型タグ付きで保存するので、型が變はっても安全にゃ
 - 處理器内で例外が發生した場合は 500 Internal Server Error を返すにゃ
 
 ---
@@ -201,7 +208,7 @@ construe
 |---|---|
 | `optio "表示名" "EventName"` | 選擇肢を追加（クリックで事象を發生）|
 | `optioEventum "表示名" "EventName" ["r0", "r1"]` | Reference 附き選擇肢 |
-| `ancora "id"` … `fineAncora` | 錨（クリック可能な文字列）|
+| `ancora "signum"` … `fineAncora` | 錨（クリック可能な文字列）|
 
 ```lean
 eventum "OnBoot" fun _ => do
@@ -233,8 +240,8 @@ eventum "OnBoot" fun _ => do
 | `expectaSonum` | `\_V` | 音聲終了を待つ |
 | `excita "Event"` | `\![raise,Event]` | 事象を發生させる |
 | `exitus` | `\-` | ゴーストを終了させる |
-| `aperi "url"` | `\j[url]` | URL を開く |
-| `crudus "文字列"` | (そのまま出力) | 生の SakuraScript を直接發出 |
+| `aperi "nexus"` | `\j[nexus]` | URL を開く |
+| `crudus "signum"` | (そのまま出力) | 生の SakuraScript を直接發出 |
 
 便利な組合せ:
 
@@ -271,8 +278,8 @@ SSP/
         │   └── master/               ← シェル畫像
         └── ghost/
             └── master/
-                ├── shiori.dll        ← ★ ここに置くにゃ
-                └── ghost_status.dat  ← 永続化ダータ（自動生成にゃ）
+                ├── shiori.dll        ← ★ ここにゃ
+                └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
 ```
 
 ---
@@ -289,15 +296,15 @@ varia temporaria talkCount  : Nat  := 0   -- 今囘の起動中だけにゃ
 
 eventum "OnBoot" fun _ => do
   greetCount.modify (· + 1)
-  let n ← greetCount.get
+  let numerus ← greetCount.get
   sakura; superficies 0
-  if n == 1 then
+  if numerus == 1 then
     loquiEtLinea "はじめましてにゃん！"
     mora 800; linea
     kero; superficies 10
     loquiEtLinea "よろしくお願ひします。"
   else
-    loquiEtLinea s!"{n} 囘目の起動にゃ♪"
+    loquiEtLinea s!"{numerus} 囘目の起動にゃ♪"
   finis
 
 eventum "OnClose" fun _ => do
@@ -308,22 +315,21 @@ eventum "OnClose" fun _ => do
   loquiEtLinea "お疲れ樣でした。"
   finis
 
-eventum "OnMouseDoubleClick" fun req => do
+eventum "OnMouseDoubleClick" fun rogatio => do
   talkCount.modify (· + 1)
-  match req.referentiam 4 with
+  match rogatio.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ？嬉しいにゃん♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？ 顏は恥づかしいにゃ…"
   | _           => sakura; superficies 0; loqui "なでなでにゃ"
   finis
 
-eventum "OnMinuteChange" fun req => do
-  match req.referentiam 1 with
-  | some "00" =>
-    let h := (req.referentiam 0).getD "?"
+eventum "OnMinuteChange" fun rogatio => do
+  match rogatio.referentiam 0, rogatio.referentiam 1 with
+  | some hora, some "00" =>
     sakura; superficies 0
-    loquiEtLinea s!"{h}時ちょうどにゃん♪"
+    loquiEtLinea s!"{hora}時ちょうどにゃん♪"
     finis
-  | _ => finis   -- 毎分は何もしにゃい
+  | _, _ => finis   -- 毎分は何もしにゃい
 
 construe
 ```
@@ -361,16 +367,58 @@ initialize
 
 ## 永続化ファスキクルスの形式
 
-`{ghost}/ghost_status.dat` に平文で保存されるにゃ:
+`{ghost}/ghost_status.bin` にバイナリで保存されるにゃ（v2 形式）。
 
-```
-greetCount=42
-liked=true
-```
-
-- 1行1變數、`=` 區切りにゃ
 - `perpetua` 變數のみ保存・復元されるにゃ（`temporaria` は保存されにゃい）
 - ファスキクルスがない場合は `:= 初期値` が使はれるにゃ
+- 各エントリに `typusTag`（型の文字列識別子）が附いてゐるにゃ
+  - 型が變はった變數は安全に讀み飛ばされるにゃん♪
+
+### 使へる型（`StatusPermanens` インスタンスあり）
+
+| 型 | `typusTag` | エンコード形式 |
+|---|---|---|
+| `Nat` | `"Nat"` | UInt64 LE（8バイト）|
+| `Int` | `"Int"` | 二の補數 Int64 LE（8バイト）|
+| `Bool` | `"Bool"` | 1バイト（0/1）|
+| `String` | `"String"` | UTF-8 バイト列 |
+| `Float` | `"Float"` | IEEE 754 倍精度（8バイト）|
+| `UInt8/16/32/64` | `"UInt8"` 等 | 各サイズ LE |
+| `Char` | `"Char"` | UInt32 として Unicode 符號點 |
+| `ByteArray` | `"ByteArray"` | そのまま |
+| `Option α` | `"Option(α)"` | 1バイトタグ + 中身 |
+| `List α` | `"List(α)"` | 4バイト要素數 + 各要素 |
+| `Array α` | `"Array(α)"` | `List α` と同じ |
+| `α × β` | `"Prod(α,β)"` | フィールドの連結 |
+
+### 自作構造體の永続化
+
+`encodeField`/`decodeField` を使へば任意の構造體をインスタンスにできるにゃん♪
+
+```lean
+import UkaLean
+open UkaLean
+
+structure PlayerData where
+  gradus : Nat     -- 等級（英語 level のかはりにゃ）
+  nomen  : String
+  puncta : Float   -- 點數
+
+instance : StatusPermanens PlayerData where
+  typusTag := "PlayerData"
+  adBytes p :=
+    encodeField p.gradus ++
+    encodeField p.nomen  ++
+    encodeField p.puncta
+  eBytes b := do
+    let (gradus, pos1) ← decodeField b 0
+    let (nomen,  pos2) ← decodeField b pos1
+    let (puncta, _)    ← decodeField b pos2
+    return { gradus, nomen, puncta }
+
+-- あとはいつも通りにゃ
+varia perpetua player : PlayerData := { gradus := 1, nomen := "シロ", puncta := 0.0 }
+```
 
 ---
 
@@ -388,8 +436,8 @@ uka.lean/
 │   ├── Responsum.lean          ← SHIORI/3.0 應答構築器
 │   ├── Nuculum.lean            ← 核心骨格（Shiori 型・事象經路設定）
 │   ├── Exporta.lean            ← @[export] FFI 輸出關數群
-│   ├── StatusPermanens.lean    ← 永続化型クラスと補助關數
-│   └── Macro.lean              ← varia / eventum / construe
+│   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
+│   └── Macro.lean              ← varia / eventum / construe DSL マクロ
 ├── ffi/
 │   └── shiori.c                ← C 包裝（SSP ↔ Lean 橋渡し）
 └── Main.lean                   ← 模擬試驗用實行體

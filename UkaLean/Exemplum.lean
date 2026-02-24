@@ -1,5 +1,5 @@
 -- UkaLean.Exemplum
--- 使用例にゃん♪ お嬢樣はこんな風に處理器を書くにゃ
+-- 使用例にゃん♪ Rogatio を受け取る關數で各事象を定義し tractatores に登錄するにゃ
 
 import UkaLean.Nuculum
 
@@ -41,8 +41,8 @@ def onClose (_ : Rogatio) : SakuraIO Unit := do
 
 /-- 滑鼠二重打鍵の處理にゃん。Reference4 に觸られた部位名が入るにゃ -/
 def onMouseDoubleClick (r : Rogatio) : SakuraIO Unit := do
-  -- Reference3 = 觸られたスコープ(scopus)
-  -- Reference4 = 觸られた部位名
+  -- ref.3 = 觸られたスコープ（scopus）番号にゃ
+  -- ref.4 = 觸られた部位名にゃ
   match r.referentiam 4 with
   | some "Head" =>
     sakura; superficies 5
@@ -62,9 +62,9 @@ def onMouseDoubleClick (r : Rogatio) : SakuraIO Unit := do
 def onMinuteChange (r : Rogatio) : SakuraIO Unit := do
   -- Reference0 = 時, Reference1 = 分
   match r.referentiam 0, r.referentiam 1 with
-  | some hour, some "00" =>
+  | some hora, some "00" =>
     sakura; superficies 0
-    loqui s!"{hour}時ちょうどにゃん♪"
+    loqui s!"{hora}時ちょうどにゃん♪"
     finis
   | _, _ =>
     -- 每分は何も喋らにゃいにゃ

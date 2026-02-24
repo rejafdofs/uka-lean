@@ -124,17 +124,17 @@ def tempusCriticum {m : Type → Type} [Monad m] : SakuraM m Unit :=
 
 /-- 選擇肢を追加する（\\q[表題,識別子]）にゃん。
     表題(titulus)の特殊文字は自動的に遁走されるにゃ -/
-def optio {m : Type → Type} [Monad m] (titulus id : String) : SakuraM m Unit :=
-  emitte s!"\\q[{evadeTextus titulus},{id}]"
+def optio {m : Type → Type} [Monad m] (titulus signum : String) : SakuraM m Unit :=
+  emitte s!"\\q[{evadeTextus titulus},{signum}]"
 
 /-- 事象附き選擇肢（\\q[表題,OnEvent,ref0,ref1,...]）にゃん。
     表題(titulus)の特殊文字は自動的に遁走されるにゃ -/
 def optioEventum {m : Type → Type} [Monad m]
-    (titulus eventum : String) (ref : List String := []) : SakuraM m Unit :=
-  let refStr := match ref with
+    (titulus eventum : String) (citationes : List String := []) : SakuraM m Unit :=
+  let catenaCitationis := match citationes with
     | [] => ""
-    | rs => "," ++ ",".intercalate rs
-  emitte s!"\\q[{evadeTextus titulus},{eventum}{refStr}]"
+    | res => "," ++ ",".intercalate res
+  emitte s!"\\q[{evadeTextus titulus},{eventum}{catenaCitationis}]"
 
 /-- 錨（\\_a[id]...テキスト...\\_a）にゃん。
     閉ぢる時は `fineAncora` を呼ぶにゃ -/
@@ -205,8 +205,8 @@ def nomenFontis {m : Type → Type} [Monad m] (nomen : String) : SakuraM m Unit 
   emitte s!"\\f[name,{nomen}]"
 
 /-- 文字揃へ（\\f[align,方向]）にゃん -/
-def allineatio {m : Type → Type} [Monad m] (dir : String) : SakuraM m Unit :=
-  emitte s!"\\f[align,{dir}]"
+def allineatio {m : Type → Type} [Monad m] (directio : String) : SakuraM m Unit :=
+  emitte s!"\\f[align,{directio}]"
 
 /-- 書式を既定に戾す（\\f[default]）にゃん -/
 def formaPraefinita {m : Type → Type} [Monad m] : SakuraM m Unit :=
@@ -243,27 +243,27 @@ def expectaSonum {m : Type → Type} [Monad m] : SakuraM m Unit :=
 
 /-- 事象を發生させる（\\![raise,event,r0,...]）にゃん -/
 def excita {m : Type → Type} [Monad m]
-    (eventum : String) (ref : List String := []) : SakuraM m Unit :=
-  let refStr := match ref with
+    (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
+  let catenaCitationis := match citationes with
     | [] => ""
-    | rs => "," ++ ",".intercalate rs
-  emitte s!"\\![raise,{eventum}{refStr}]"
+    | res => "," ++ ",".intercalate res
+  emitte s!"\\![raise,{eventum}{catenaCitationis}]"
 
 /-- 事象の結果をその場に埋め込む（\\![embed,event,r0,...]）にゃん -/
 def insere {m : Type → Type} [Monad m]
-    (eventum : String) (ref : List String := []) : SakuraM m Unit :=
-  let refStr := match ref with
+    (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
+  let catenaCitationis := match citationes with
     | [] => ""
-    | rs => "," ++ ",".intercalate rs
-  emitte s!"\\![embed,{eventum}{refStr}]"
+    | res => "," ++ ",".intercalate res
+  emitte s!"\\![embed,{eventum}{catenaCitationis}]"
 
 /-- 通知事象（\\![notify,event,r0,...]）にゃん -/
 def notifica {m : Type → Type} [Monad m]
-    (eventum : String) (ref : List String := []) : SakuraM m Unit :=
-  let refStr := match ref with
+    (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
+  let catenaCitationis := match citationes with
     | [] => ""
-    | rs => "," ++ ",".intercalate rs
-  emitte s!"\\![notify,{eventum}{refStr}]"
+    | res => "," ++ ",".intercalate res
+  emitte s!"\\![notify,{eventum}{catenaCitationis}]"
 
 -- ════════════════════════════════════════════════════
 --  窓制御 (Imperium Fenestrae)
@@ -280,8 +280,8 @@ def recede {m : Type → Type} [Monad m] : SakuraM m Unit := emitte "\\4"
 -- ════════════════════════════════════════════════════
 
 /-- URL やファスキクルスを開く（\\j[url]）にゃん -/
-def aperi {m : Type → Type} [Monad m] (url : String) : SakuraM m Unit :=
-  emitte s!"\\j[{url}]"
+def aperi {m : Type → Type} [Monad m] (nexus : String) : SakuraM m Unit :=
+  emitte s!"\\j[{nexus}]"
 
 /-- 特殊文字の遁走(escape)にゃん -/
 def evade {m : Type → Type} [Monad m] (c : Char) : SakuraM m Unit :=
@@ -292,8 +292,8 @@ def evade {m : Type → Type} [Monad m] (c : Char) : SakuraM m Unit :=
   | _    => emitte (String.ofList [c])
 
 /-- 任意の SakuraScript 標籤を直接發出する（高度にゃ使用向け）にゃん -/
-def crudus {m : Type → Type} [Monad m] (tag : String) : SakuraM m Unit :=
-  emitte tag
+def crudus {m : Type → Type} [Monad m] (signum : String) : SakuraM m Unit :=
+  emitte signum
 
 -- ════════════════════════════════════════════════════
 --  便利にゃ組合せ (Combinationes Utiles)
@@ -319,8 +319,8 @@ def keroLoquitur {m : Type → Type} [Monad m]
 
 /-- SakuraScript モナドを實行し、蓄積された SakuraScript 文字列を得るにゃん -/
 def currere {m : Type → Type} [Monad m]
-    (script : SakuraM m Unit) (initium : String := "") : m String := do
-  let (_, resultatum) ← StateT.run script initium
+    (scriptum : SakuraM m Unit) (initium : String := "") : m String := do
+  let (_, resultatum) ← StateT.run scriptum initium
   return resultatum
 
 end Sakura

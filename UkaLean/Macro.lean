@@ -1,6 +1,7 @@
 -- UkaLean.Macro
 -- ゴーストDSLマクロにゃん♪
 -- varia / eventum / construe の3つのマクロを提供するにゃ
+-- 環境拡張 GhostAccumulatio に variae（變數宣言）と eventa（事象宣言）を累積するにゃ
 
 import Lean
 import UkaLean.StatusPermanens
@@ -20,7 +21,7 @@ structure GhostVarDecl where
   nomen       : Name
   /-- 型の構文木にゃ。永続化の型クラス解決に使ふにゃ -/
   typusSyntax : Syntax
-  /-- true なら ghost_status.dat に永続化するにゃん -/
+  /-- true なら ghost_status.bin に永続化するにゃん -/
   permanet    : Bool
 
 /-- eventum 宣言の情報にゃん -/
@@ -32,8 +33,8 @@ structure GhostEventDecl where
 
 /-- ゴーストの累積宣言にゃん。construe 時に全部參照するにゃ -/
 structure GhostAccumulatio where
-  vars   : Array GhostVarDecl   := #[]
-  events : Array GhostEventDecl := #[]
+  variae : Array GhostVarDecl   := #[]
+  eventa : Array GhostEventDecl := #[]
 
 -- Inhabited インスタンスにゃん♪
 instance : Inhabited GhostVarDecl :=
@@ -54,14 +55,14 @@ initialize ghostAccumulatioExt : EnvExtension GhostAccumulatio ←
 
 /-- 永続化變數を宣言するにゃん♪
     `initialize greetCount : IO.Ref Nat ← IO.mkRef 0` を生成して
-    ghost_status.dat に保存・復元されるやうにするにゃ -/
+    ghost_status.bin に保存・復元されるやうにするにゃ -/
 elab "varia" "perpetua" n:ident ":" t:term ":=" v:term : command => do
   -- initialize を生成するにゃ
   elabCommand (← `(initialize $n : IO.Ref $t ← IO.mkRef $v))
-  -- 環境拡張に登錄するにゃ♪
+  -- 環境拡張に登錄するにゃ♪（variae に push するにゃ）
   modifyEnv fun env =>
     ghostAccumulatioExt.modifyState env fun acc =>
-      { acc with vars := acc.vars.push {
+      { acc with variae := acc.variae.push {
           nomen := n.getId, typusSyntax := t, permanet := true } }
 
 /-- 一時變數を宣言するにゃん。
@@ -70,10 +71,10 @@ elab "varia" "perpetua" n:ident ":" t:term ":=" v:term : command => do
 elab "varia" "temporaria" n:ident ":" t:term ":=" v:term : command => do
   -- initialize を生成するにゃ
   elabCommand (← `(initialize $n : IO.Ref $t ← IO.mkRef $v))
-  -- 環境拡張に登錄するにゃ（permanet = false）
+  -- 環境拡張に登錄するにゃ（permanet = false、variae に push するにゃ）
   modifyEnv fun env =>
     ghostAccumulatioExt.modifyState env fun acc =>
-      { acc with vars := acc.vars.push {
+      { acc with variae := acc.variae.push {
           nomen := n.getId, typusSyntax := t, permanet := false } }
 
 -- ═══════════════════════════════════════════════════
@@ -83,21 +84,21 @@ elab "varia" "temporaria" n:ident ":" t:term ":=" v:term : command => do
 /-- 事象處理器を宣言するにゃん♪
     `def _tractator_OnBoot : UkaLean.Tractator := body` を即時生成するにゃ。
     型エッロルはここで檢出されるにゃ -/
-elab "eventum" eventName:str body:term : command => do
-  let nomen := eventName.getString
+elab "eventum" nomenEventi:str body:term : command => do
+  let nomen := nomenEventi.getString
   -- _tractator_OnBoot のやうな識別子を作るにゃ
-  let tractatorBaseName := "_tractator_" ++ nomen
-  let tractatorIdent := mkIdent (Name.mkSimple tractatorBaseName)
+  let nomenBasisTractatorum := "_tractator_" ++ nomen
+  let identTractatorum := mkIdent (Name.mkSimple nomenBasisTractatorum)
   -- 處理器を定義するにゃん♪
-  elabCommand (← `(def $tractatorIdent : UkaLean.Tractator := $body))
+  elabCommand (← `(def $identTractatorum : UkaLean.Tractator := $body))
   -- 現在の名前空間を加味した完全修飾名にゃ
   let ns ← getCurrNamespace
-  let tractatorFullName := ns ++ Name.mkSimple tractatorBaseName
-  -- 環境拡張に登錄するにゃ
+  let nomenPlenumTractatorum := ns ++ Name.mkSimple nomenBasisTractatorum
+  -- 環境拡張に登錄するにゃ（eventa に push するにゃ）
   modifyEnv fun env =>
     ghostAccumulatioExt.modifyState env fun acc =>
-      { acc with events := acc.events.push {
-          nomen, tractatorNomen := tractatorFullName } }
+      { acc with eventa := acc.eventa.push {
+          nomen, tractatorNomen := nomenPlenumTractatorum } }
 
 -- ═══════════════════════════════════════════════════
 -- construe マクロにゃん
@@ -105,70 +106,81 @@ elab "eventum" eventName:str body:term : command => do
 
 /-- ゴーストを組み立てて SSP に登錄するにゃん♪
     varia と eventum の宣言を讀み取り、栞を構築・登錄するにゃ。
-    永続變數がある場合は讀込・書出フックも自動生成するにゃ -/
+    永続變數がある場合は讀込・書出フックも自動生成するにゃ。
+
+    **型安全な永続化にゃん♪**
+    保存時に `typusTag`（型の文字列識別子）も記録するにゃ。
+    復元時はタグが一致した時だけ値を讀み込むにゃ。
+    ゴーストの更新で變數の型が變はっても安全にゃん！ -/
 elab "construe" : command => do
   let env ← getEnv
   let acc := ghostAccumulatioExt.getState env
-  let persistentVars := acc.vars.filter (·.permanet)
-  let events := acc.events
+  let variaePermanentes := acc.variae.filter (·.permanet)
+  let eventa := acc.eventa
 
   -- tractatores のペアを Syntax として組み立てるにゃ
   -- [("OnBoot", _tractator_OnBoot), ("OnClose", _tractator_OnClose)]
-  let tractatoresPairs : Array (TSyntax `term) ← events.mapM fun e => do
-    let tractatorIdent := mkIdent e.tractatorNomen
-    let eventNameLit : TSyntax `term := ⟨Syntax.mkStrLit e.nomen⟩
-    `(($eventNameLit, $tractatorIdent))
+  let pariaTractatorum : Array (TSyntax `term) ← eventa.mapM fun e => do
+    let identTractatorum := mkIdent e.tractatorNomen
+    let signumNominis : TSyntax `term := ⟨Syntax.mkStrLit e.nomen⟩
+    `(($signumNominis, $identTractatorum))
 
-  if persistentVars.isEmpty then
-    -- 永続化なし: シンプルにゃ registraShiori を使ふにゃ
-    -- 括弧でくくって initialize のパーサーに正しく渡すにゃ
+  if variaePermanentes.isEmpty then
+    -- 永続化にゃし: シンプレクス(simplex)にゃ registraShiori を使ふにゃ
     elabCommand (← `(
-      initialize (UkaLean.registraShiori [$tractatoresPairs,*])
+      initialize (UkaLean.registraShiori [$pariaTractatorum,*])
     ))
   else
-    -- 永続化あり: 讀込・書出フックを生成するにゃ♪
+    -- 永続化あり: 型タグ付き讀込・書出フックを生成するにゃ♪
 
     -- 讀込フック(onerare)の要素を生成するにゃ
-    -- ("greetCount", fun _s => do
-    --   if let (some _v : Option Nat) := eCatena _s then greetCount.set _v)
-    let loadItems : Array (TSyntax `term) ← persistentVars.mapM fun v => do
-      let varIdent := mkIdent v.nomen
-      let varNameLit : TSyntax `term := ⟨Syntax.mkStrLit v.nomen.toString⟩
-      -- Syntax を TSyntax `term にキャストするにゃ
-      let typSyn : TSyntax `term := ⟨v.typusSyntax⟩
-      `(($varNameLit, fun _s => do
-          if let (some _v : Option $typSyn) :=
-              UkaLean.StatusPermanens.eCatena _s then
-            -- ドット記法は括弧でくくって確實に展開するにゃ
-            ($varIdent).set _v))
+    -- ("greetCount", fun _tag _s => do
+    --   if _tag == StatusPermanens.typusTag (α := Nat) then
+    --     if let (some _v : Option Nat) := eBytes _s then greetCount.set _v)
+    let elementaOnerandi : Array (TSyntax `term) ← variaePermanentes.mapM fun v => do
+      let identVariae := mkIdent v.nomen
+      let signumNominis : TSyntax `term := ⟨Syntax.mkStrLit v.nomen.toString⟩
+      let syntaxisTypi : TSyntax `term := ⟨v.typusSyntax⟩
+      `(($signumNominis, fun _tag _s => do
+          -- 型タグが一致した時だけ復元するにゃん♪
+          if _tag == UkaLean.StatusPermanens.typusTag (α := $syntaxisTypi) then
+            if let (some _v : Option $syntaxisTypi) :=
+                UkaLean.StatusPermanens.eBytes _s then
+              ($identVariae).set _v))
 
     -- 書出フック(exire)の要素を生成するにゃ
-    -- ("greetCount", do return adCatenam (← greetCount.get))
-    let saveItems : Array (TSyntax `term) ← persistentVars.mapM fun v => do
-      let varIdent := mkIdent v.nomen
-      let varNameLit : TSyntax `term := ⟨Syntax.mkStrLit v.nomen.toString⟩
-      `(($varNameLit, do
-          return UkaLean.StatusPermanens.adCatenam (← ($varIdent).get)))
+    -- ("greetCount", do
+    --   let _v ← greetCount.get
+    --   return (StatusPermanens.typusTag (α := Nat), adBytes _v))
+    let elementaServandi : Array (TSyntax `term) ← variaePermanentes.mapM fun v => do
+      let identVariae := mkIdent v.nomen
+      let signumNominis : TSyntax `term := ⟨Syntax.mkStrLit v.nomen.toString⟩
+      let syntaxisTypi : TSyntax `term := ⟨v.typusSyntax⟩
+      `(($signumNominis, do
+          let _v ← ($identVariae).get
+          -- 型タグと直列化バイトの組を返すにゃん♪
+          return (UkaLean.StatusPermanens.typusTag (α := $syntaxisTypi),
+                  UkaLean.StatusPermanens.adBytes _v)))
 
-    -- リストを先に term として組み立ててから渡すにゃん♪
-    let tractatoresTerm ← `([$tractatoresPairs,*])
-    let loadTerm        ← `([$loadItems,*])
-    let saveTerm        ← `([$saveItems,*])
+    -- terminusTractatorum 等を先に組み立ててから渡すにゃん♪
+    let terminusTractatorum ← `([$pariaTractatorum,*])
+    let terminusOnerandi    ← `([$elementaOnerandi,*])
+    let terminusServandi    ← `([$elementaServandi,*])
 
-    -- 全体を一括生成するにゃん♪
+    -- 全體を一括生成するにゃん♪
     elabCommand (← `(
       initialize (UkaLean.registraShioriEx
-        $tractatoresTerm
+        $terminusTractatorum
         (some (fun _domus => do
-          let _via := _domus ++ "/ghost_status.dat"
+          let _via := _domus ++ "/ghost_status.bin"
           try
             let _paria ← UkaLean.legereMappam _via
-            UkaLean.executareLecturam _paria $loadTerm
+            UkaLean.executareLecturam _paria $terminusOnerandi
           catch _ => pure ()))
         (some (do
           let _domus ← UkaLean.domusObtinere
-          let _via := _domus ++ "/ghost_status.dat"
-          let _paria ← UkaLean.executareScripturam $saveTerm
+          let _via := _domus ++ "/ghost_status.bin"
+          let _paria ← UkaLean.executareScripturam $terminusServandi
           UkaLean.scribeMappam _via _paria)))
     ))
 

@@ -69,8 +69,8 @@ def tracta (s : Shiori) (rogatio : Rogatio) : IO Responsum := do
     return Responsum.nihil
 
 /-- 要求文字列を受け取り、應答文字列を返す一氣通貫の處理にゃん -/
-def tractaCatenam (s : Shiori) (reqStr : String) : IO String := do
-  match Rogatio.interpreta reqStr with
+def tractaCatenam (s : Shiori) (catenaRogationis : String) : IO String := do
+  match Rogatio.interpreta catenaRogationis with
   | .ok rogatio =>
     let responsum ← s.tracta rogatio
     return responsum.adProtocollum
