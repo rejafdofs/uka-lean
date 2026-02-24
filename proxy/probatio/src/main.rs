@@ -1,12 +1,9 @@
-/*! SSP を模して ghost.dll を直接讀み込み、SHIORI 通信をプロバーティオーするにゃん♪
- *  ghost.dll の load / request / unload を直接呼んで動作確認するにゃ
- */
+/*! SSP を模して ghost.dll を直接讀み込み、SHIORI 通信をプロバーティオーするにゃん♪ */
 
 use std::ffi::OsStr;
 use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
 
-use windows_sys::Win32::Foundation::HMODULE;
 use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW, SetDllDirectoryW};
 use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_FIXED};
 
@@ -19,7 +16,6 @@ fn to_wide(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(once(0)).collect()
 }
 
-/// HGLOBAL にバイト列を詰めて返すにゃん
 unsafe fn bytes_to_hglobal(data: &[u8]) -> HGLOBAL {
     let h = GlobalAlloc(GMEM_FIXED, data.len()) as HGLOBAL;
     if !h.is_null() {
@@ -30,47 +26,61 @@ unsafe fn bytes_to_hglobal(data: &[u8]) -> HGLOBAL {
     h
 }
 
-fn main() {
-    // ① ghost.dll のディレクトーリウムを探すにゃ
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-        .unwrap_or_default();
+use windows_sys::Win32::Foundation::EXCEPTION_ACCESS_VIOLATION;
+use windows_sys::Win32::System::Diagnostics::Debug::{
+    AddVectoredExceptionHandler, EXCEPTION_POINTERS,
+};
 
-    // プロヱクトゥムの根元にゃ
+unsafe extern "system" fn exception_handler(exc_info: *mut EXCEPTION_POINTERS) -> i32 {
+    if !exc_info.is_null() {
+        let record = (*exc_info).ExceptionRecord;
+        if !record.is_null() {
+            let code = (*record).ExceptionCode;
+            eprintln!("[FATAL] Windows Exception Caught! Code: {:#X}", code);
+            if code == EXCEPTION_ACCESS_VIOLATION {
+                eprintln!(
+                    "[FATAL] Access Violation at address {:#X}",
+                    (*record).ExceptionAddress as usize
+                );
+            }
+        }
+    }
+    std::process::exit(1);
+}
+
+fn main() {
+    unsafe {
+        AddVectoredExceptionHandler(1, Some(exception_handler));
+    }
+
     let project_dir = std::path::PathBuf::from(r"c:\Users\a\Documents\uka.lean");
     let dll_path = project_dir.join("ghost.dll");
 
-    println!("[probatio] ghost.dll via: {}", dll_path.display());
+    eprintln!("[1] ghost.dll via: {}", dll_path.display());
 
-    // SetDllDirectoryW で Lean ランタイムの場所を知らせるにゃ
-    unsafe {
-        // まず lean --print-prefix/bin を試すにゃ
-        if let Ok(output) = std::process::Command::new("lean")
-            .arg("--print-prefix")
-            .output()
-        {
-            let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            let bin_dir = format!("{}\\bin", prefix);
-            println!("[probatio] SetDllDirectoryW -> {}", bin_dir);
+    // Lean ランタイム DLL の場所を設定するにゃ
+    if let Ok(output) = std::process::Command::new("lean")
+        .arg("--print-prefix")
+        .output()
+    {
+        let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let bin_dir = format!("{}\\bin", prefix);
+        eprintln!("[2] SetDllDirectoryW -> {}", bin_dir);
+        unsafe {
             SetDllDirectoryW(to_wide(&bin_dir).as_ptr());
-        } else {
-            // フォールバック: ghost.dll と同じディレクトーリウムにゃ
-            SetDllDirectoryW(to_wide(&project_dir.to_string_lossy()).as_ptr());
         }
     }
 
-    // ② ghost.dll を讀み込むにゃ
-    let dll_wide = to_wide(&dll_path.to_string_lossy());
-    let hlib = unsafe { LoadLibraryW(dll_wide.as_ptr()) };
+    // ghost.dll を讀み込むにゃ
+    let hlib = unsafe { LoadLibraryW(to_wide(&dll_path.to_string_lossy()).as_ptr()) };
     if hlib.is_null() {
         let err = unsafe { windows_sys::Win32::Foundation::GetLastError() };
-        eprintln!("[probatio] LoadLibraryW 失敗にゃ！ GetLastError={}", err);
+        eprintln!("[ERR] LoadLibraryW failed: GetLastError={}", err);
         return;
     }
-    println!("[probatio] ghost.dll 讀込成功にゃ！");
+    eprintln!("[3] ghost.dll loaded OK");
 
-    // ③ 關數ポインタを取得するにゃ
+    // 關數ポインタ取得するにゃ
     let f_load = unsafe {
         GetProcAddress(hlib, b"load\0".as_ptr()).map(|f| std::mem::transmute::<_, FnLoad>(f))
     };
@@ -84,74 +94,67 @@ fn main() {
     let (f_load, f_unload, f_request) = match (f_load, f_unload, f_request) {
         (Some(a), Some(b), Some(c)) => (a, b, c),
         _ => {
-            eprintln!("[probatio] GetProcAddress 失敗にゃ！");
+            eprintln!("[ERR] GetProcAddress failed");
             return;
         }
     };
-    println!("[probatio] load/unload/request 取得成功にゃ！");
+    eprintln!("[4] load/unload/request resolved");
 
-    // ④ load を呼ぶにゃ — ゴーストのディレクトーリウムを UTF-8 で渡すにゃ
-    let ghost_dir = project_dir.to_string_lossy().to_string();
+    // load を呼ぶにゃ（SSP は末尾 \ 付きにゃ）
+    let ghost_dir = format!("{}\\", project_dir.to_string_lossy());
     let ghost_dir_bytes = ghost_dir.as_bytes();
-    println!("[probatio] load({}) を呼ぶにゃ...", ghost_dir);
+    eprintln!(
+        "[5] calling load({}) len={}",
+        ghost_dir,
+        ghost_dir_bytes.len()
+    );
 
     let load_result = unsafe {
         let h = bytes_to_hglobal(ghost_dir_bytes);
-        println!("[probatio] HGLOBAL 作成完了、f_load を呼ぶにゃ...");
-        f_load(h, ghost_dir_bytes.len() as i32)
+        eprintln!("[6] calling f_load...");
+        let r = f_load(h, ghost_dir_bytes.len() as i32);
+        eprintln!("[7] f_load returned {}", r);
+        r
     };
-    println!("[probatio] load 結果: {}", load_result);
 
     if load_result == 0 {
-        eprintln!("[probatio] load 失敗にゃ…終了するにゃ");
+        eprintln!("[ERR] load returned 0 (failure)");
         return;
     }
+    eprintln!("[8] load succeeded");
 
-    // ⑤ request を呼ぶにゃ — SHIORI/3.0 GET を模擬するにゃん
-    let shiori_req = "GET SHIORI/3.0\r\n\
-                      Charset: UTF-8\r\n\
-                      Sender: SSP\r\n\
-                      SecurityLevel: local\r\n\
-                      ID: OnBoot\r\n\
-                      Reference0: master\r\n\
-                      \r\n";
-
-    println!("[probatio] request を呼ぶにゃ...");
-    println!("[probatio] 要求:\n{}", shiori_req);
+    // request を呼ぶにゃ
+    let shiori_req = "GET SHIORI/3.0\r\nCharset: UTF-8\r\nSender: SSP\r\nSecurityLevel: local\r\nID: OnBoot\r\nReference0: master\r\n\r\n";
+    eprintln!("[9] calling request (OnBoot)...");
 
     let resp = unsafe {
         let h = bytes_to_hglobal(shiori_req.as_bytes());
         let mut resp_len: i32 = shiori_req.len() as i32;
         let resp_h = f_request(h, &mut resp_len);
-
         if resp_h.is_null() || resp_len <= 0 {
-            println!(
-                "[probatio] request が NULL を返したにゃ (resp_len={})",
-                resp_len
-            );
+            eprintln!("[10] request returned NULL (resp_len={})", resp_len);
             None
         } else {
             let ptr = GlobalLock(resp_h) as *const u8;
             let bytes = core::slice::from_raw_parts(ptr, resp_len as usize).to_vec();
             GlobalUnlock(resp_h);
-            // GlobalFree は ghost.dll が管理するにゃ
             Some(bytes)
         }
     };
 
     match resp {
-        Some(bytes) => {
-            let text = String::from_utf8_lossy(&bytes);
-            println!("[probatio] 應答 ({} bytes):\n{}", bytes.len(), text);
-        }
-        None => {
-            println!("[probatio] 應答なしにゃ");
-        }
+        Some(bytes) => eprintln!(
+            "[10] response ({} bytes):\n{}",
+            bytes.len(),
+            String::from_utf8_lossy(&bytes)
+        ),
+        None => eprintln!("[10] no response"),
     }
 
-    // ⑥ unload を呼ぶにゃ
-    println!("[probatio] unload を呼ぶにゃ...");
-    let unload_result = unsafe { f_unload() };
-    println!("[probatio] unload 結果: {}", unload_result);
-    println!("[probatio] 完了にゃん♪");
+    // unload を呼ぶにゃ
+    eprintln!("[11] calling unload...");
+    unsafe {
+        f_unload();
+    }
+    eprintln!("[12] done!");
 }
