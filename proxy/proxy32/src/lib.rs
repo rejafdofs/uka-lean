@@ -234,9 +234,16 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
     let mut rivus = filius.stdout.take().unwrap();
 
     // ③ ONERARE(load) 命令を送るにゃ: [1u8][len:u32LE][bytes]
+    // ghost.dll(Lean) は UTF-8 を前提にするにゃ。ANSI パスを UTF-8 に變換して送るにゃん！
+    let utf8_via = ansi_to_utf8_bytes(&via_bytes);
+    log_trace!(
+        "load sending UTF-8 path ({} bytes): {}",
+        utf8_via.len(),
+        String::from_utf8_lossy(&utf8_via)
+    );
     let ok = calamus.write_all(&[1u8]).is_ok()
-        && scribe_u32(&mut calamus, via_bytes.len() as u32).is_ok()
-        && calamus.write_all(&via_bytes).is_ok()
+        && scribe_u32(&mut calamus, utf8_via.len() as u32).is_ok()
+        && calamus.write_all(&utf8_via).is_ok()
         && calamus.flush().is_ok();
     if !ok {
         log_trace!("load failed: pipe write error");
