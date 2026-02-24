@@ -78,24 +78,32 @@ my-ghost/
 ### ⑤ 構築して DLL を作るにゃ
 
 ```bash
+leanPrefix="$(lean --print-prefix)"
+ghostLib="$(echo .lake/build/lib/*_Ghost.a)"
+ukaLib="$(echo .lake/packages/uka-lean/.lake/build/lib/*_UkaLean.a)"
+initSym="$(nm -g "$ghostLib" | awk '/ T initialize_.*_Ghost$/ { print $3; exit }')"
+
 lake build Ghost:static UkaLean:static
-gcc -shared -o shiori.dll ffi/shiori.c \
-  -I"$(lean --print-prefix)/include" \
-  -L.lake/build/lib -lGhost \
-  -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean \
-  -L"$(lean --print-prefix)/lib/lean" -lleanshared \
+leanc -shared -o shiori.dll ffi/shiori.c \
+  -D"initialize_Ghost=$initSym" \
+  -I"$leanPrefix/include" \
+  "$ghostLib" \
+  "$ukaLib" \
   -lws2_32
 ```
 
 ```powershell
 $leanPrefix = (lean --print-prefix).Trim()
+$ghostLib = (Get-ChildItem .lake/build/lib -Filter *_Ghost.a | Select-Object -First 1 -ExpandProperty FullName)
+$ukaLib = (Get-ChildItem .lake/packages/uka-lean/.lake/build/lib -Filter *_UkaLean.a | Select-Object -First 1 -ExpandProperty FullName)
+$initSym = (nm -g $ghostLib | Select-String " T initialize_.*_Ghost$" | Select-Object -First 1).ToString().Trim().Split()[-1]
 
 lake build Ghost:static UkaLean:static
-gcc -shared -o shiori.dll ffi/shiori.c `
+leanc -shared -o shiori.dll ffi/shiori.c `
+  -D "initialize_Ghost=$initSym" `
   -I"$leanPrefix/include" `
-  -L.lake/build/lib -lGhost `
-  -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean `
-  -L"$leanPrefix/lib/lean" -lleanshared `
+  "$ghostLib" `
+  "$ukaLib" `
   -lws2_32
 ```
 

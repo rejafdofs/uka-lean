@@ -15,13 +15,34 @@
  */
 
 #include <lean/lean.h>
+#include <stddef.h>
+
+/* leanc 環境では string.h が無いことがあるため明示宣言 */
+void *memcpy(void *dest, const void *src, size_t n);
 
 #ifdef _WIN32
-#include <windows.h>
+/* leanc 環境では windows.h 依存を避ける */
+#ifndef __cdecl
+#define __cdecl
+#endif
+#ifndef __stdcall
+#define __stdcall
+#endif
+
+typedef void* HGLOBAL;
+typedef int   BOOL;
+#define TRUE  1
+#define FALSE 0
+#define GMEM_FIXED 0x0000
+
+__declspec(dllimport) HGLOBAL __stdcall GlobalAlloc(unsigned int flags, size_t bytes);
+__declspec(dllimport) void*   __stdcall GlobalLock(HGLOBAL hMem);
+__declspec(dllimport) BOOL    __stdcall GlobalUnlock(HGLOBAL hMem);
+__declspec(dllimport) HGLOBAL __stdcall GlobalFree(HGLOBAL hMem);
+__declspec(dllimport) size_t  __stdcall GlobalSize(HGLOBAL hMem);
 #else
 /* POSIX 環境での模擬にゃん（試驗用）*/
 #include <stdlib.h>
-#include <string.h>
 typedef void* HGLOBAL;
 typedef int   BOOL;
 typedef long  LONG;
@@ -149,17 +170,3 @@ HGLOBAL __cdecl request(HGLOBAL h, long *len) {
     lean_dec_ref(io_res);
     return out;
 }
-
-#ifdef _WIN32
-/* DLL のエントリーポイントにゃん */
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    (void)hinstDLL; (void)lpvReserved;
-    switch (fdwReason) {
-    case DLL_PROCESS_ATTACH:
-        break;
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
-}
-#endif
