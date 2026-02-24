@@ -8,7 +8,7 @@ use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
 
 use windows_sys::Win32::Foundation::{GlobalFree, HMODULE};
-use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW, SetDllDirectoryW};
 use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_FIXED};
 
 type HGLOBAL = *mut core::ffi::c_void;
@@ -33,16 +33,40 @@ fn read_u32(r: &mut impl Read) -> std::io::Result<u32> {
 
 fn main() {
     // ① ghost.dll を探すにゃ（自分と同じディレクトーリウムにゃ）
-    let dll_via = std::env::current_exe()
+    let exe_dir = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|d| d.join("ghost.dll")))
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .unwrap_or_default();
+
+    let dll_via = exe_dir.join("ghost.dll");
     let dll_str = dll_via.to_string_lossy();
     let dll_wide = to_wide(&dll_str);
 
+    // Lean ランタイム DLL を見つける爲、DLL 探索パスを自分のディレクトーリウムに設定するにゃ
+    // （libleanshared.dll 等が ghost.dll と同じ場所にあれば讀み込めるにゃん）
+    unsafe {
+        let dir_wide = to_wide(&exe_dir.to_string_lossy());
+        SetDllDirectoryW(dir_wide.as_ptr());
+    }
+
     let hlib = unsafe { LoadLibraryW(dll_wide.as_ptr()) };
     if hlib.is_null() {
-        return; // 讀み込めにゃかった時は黙って終了するにゃ
+        // エッロル(error)をファスキクルス(fasciculus)に記録するにゃ（診断用にゃ）
+        let log_via = exe_dir.join("ghost_host_error.txt");
+        let err_code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        let _ = std::fs::write(
+            &log_via,
+            format!(
+                "ghost.dll の讀込に失敗したにゃ (via: {dll_str}, GetLastError: {err_code})\n\
+                 Lean ランタイム DLL が不足してゐる可能性があるにゃ。\n\
+                 `lean --print-prefix` で示されるディレクトーリウムの `bin/*.dll` を\n\
+                 ghost/master/ にコピーするにゃん♪\n"
+            ),
+        );
+        // proxy32 に「讀込失敗」を知らせるにゃ
+        let _ = std::io::stdout().write_all(&[0u8; 1]);
+        let _ = std::io::stdout().flush();
+        return;
     }
 
     // ② 關數ポインタを取得するにゃ
