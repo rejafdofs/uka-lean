@@ -5,59 +5,101 @@ Lean 4 でうかがか(Ukagaka)ゴーストの栞を書くためのビブリオ�
 
 ---
 
-## 必要なもの
+## クイックスタート
+
+### 前提
 
 - [Lean 4 / elan](https://leanprover.github.io/lean4/doc/setup.html)（Lake 附属にゃ）
+- MinGW (gcc) — Windows で DLL を作るのに必要にゃ
 
----
+### ① 新規 Lake プロヱクトゥムを作るにゃ
 
-## これだけで動く最速サンプル
+```bash
+lake new my-ghost lib
+cd my-ghost
+```
+
+### ② `lakefile.toml` に `require` を追記するにゃ
+
+```toml
+name = "my-ghost"
+version = "0.1.0"
+
+require uka-lean from git
+  "https://github.com/YourUser/uka.lean" @ "main"
+
+[[lean_lib]]
+name = "Ghost"
+globs = ["Ghost"]
+```
+
+### ③ `Ghost.lean` を書くにゃ
 
 ```lean
+-- Ghost.lean
 import UkaLean
 open UkaLean Sakura
 
--- 永続化變數にゃ（終了時に保存・起動時に復元されるにゃ）
-ghost_var persistent greetCount : Nat := 0
+varia perpetua greetCount : Nat := 0
 
-ghost_on "OnBoot" fun _ => do
+eventum "OnBoot" fun _ => do
   greetCount.modify (· + 1)
   let n ← greetCount.get
   sakura; superficies 0
-  loquiEtLinea s!"起動 {n} 囘目にゃん！"
+  loqui s!"起動 {n} 囘目にゃん♪"
   finis
 
-ghost_on "OnClose" fun _ => do
-  sakura; superficies 3
-  loquiEtLinea "またにゃー！"
+eventum "OnClose" fun _ => do
+  sakura; superficies 0
+  loqui "またにゃん！"
   finis
 
-build_ghost
+construe
 ```
+
+### ④ `ffi/shiori.c` を入手するにゃ
+
+この リポジトーリウム の `ffi/shiori.c` を自分のプロヱクトゥムの `ffi/` ディレクトーリウムに置くにゃ:
+
+```
+my-ghost/
+├── lakefile.toml
+├── lean-toolchain
+├── Ghost.lean
+└── ffi/
+    └── shiori.c   ← ここにゃ
+```
+
+### ⑤ ビルドして DLL を作るにゃ
 
 ```bash
-lake build                 # 構築にゃ
-lake exe shiori-probatio   # 模擬試驗にゃ
+lake build Ghost
+gcc -shared -o shiori.dll ffi/shiori.c \
+  -I"$(lean --print-prefix)/include" \
+  -L.lake/build/lib -lGhost \
+  -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean \
+  -L"$(lean --print-prefix)/lib/lean" -lleanrt \
+  -lws2_32 -lgmp -lpthread
 ```
+
+`shiori.dll` が完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
 
 ---
 
-## 3つのキーワード
+## `Ghost.lean` の書き方
 
-### `ghost_var` — 全域變數の宣言
+### `varia` — 全域變數の宣言
 
 ```lean
-ghost_var persistent 名前 : 型 := 初期値   -- 終了時に保存・起動時に復元
-ghost_var transient  名前 : 型 := 初期値   -- 起動中だけ使ふ（保存しにゃい）
+varia perpetua  名前 : 型 := 初期値   -- 終了時に保存・起動時に復元するにゃ
+varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存しにゃい）
 ```
 
-`persistent` と `transient` の違い:
-
-| | `persistent` | `transient` |
+| | `perpetua` | `temporaria` |
 |---|---|---|
 | 保存先 | `{ghost}/ghost_status.dat` | なし |
 | 起動時 | ファスキクルスから復元 | 初期値から始まる |
-| 用途 | 起動回數・設定・フラグ等 | 今囘だけ使ふ情報 |
+| 用途 | 起動囘數・設定・フラグ等 | 今囘だけ使ふ情報 |
 
 使へる型: `Nat` `Int` `Bool` `String`（`StatusPermanens` クラスのインスタンスにゃ）
 
@@ -66,15 +108,15 @@ ghost_var transient  名前 : 型 := 初期値   -- 起動中だけ使ふ（保�
 ```lean
 let n ← greetCount.get      -- 讀む
 greetCount.set 42            -- 書く
-greetCount.modify (· + 1)    -- 更新
+greetCount.modify (· + 1)    -- 更新する
 ```
 
 ---
 
-### `ghost_on` — 事象處理器の宣言
+### `eventum` — 事象處理器の宣言
 
 ```lean
-ghost_on "事象名" fun req => do
+eventum "事象名" fun req => do
   -- req : Rogatio（SSP からの要求情報にゃ）
   ...
   finis   -- ★ 末尾に必ず書くにゃ
@@ -88,12 +130,12 @@ ghost_on "事象名" fun req => do
 | `req.referentiam 0` | `Option String` | Reference0 |
 | `req.referentiam 1` | `Option String` | Reference1 |
 | `req.mittens` | `Option String` | Sender 頭部 |
-| `req.caput "キー"` | `Option String` | 任意の頭部 |
+| `req.caput "クラーウィス"` | `Option String` | 任意の頭部 |
 
-`req.referentiamn` の使ひ方:
+使用例:
 
 ```lean
-ghost_on "OnMouseDoubleClick" fun req => do
+eventum "OnMouseDoubleClick" fun req => do
   match req.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？"
@@ -101,29 +143,19 @@ ghost_on "OnMouseDoubleClick" fun req => do
   finis
 ```
 
-主要な事象の Reference 番號早見表:
-
-| 事象 | ref 0 | ref 1 | ref 2 | ref 3 | ref 4 |
-|---|---|---|---|---|---|
-| `OnBoot` | 起動種別 (0=普通, 1=初囘, ...) | | | | |
-| `OnMouseDoubleClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
-| `OnMouseClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
-| `OnMinuteChange` | 時 | 分 | | | |
-| `OnSecondChange` | 時 | 分 | 秒 | | |
-| `OnChoiceSelect` | 選擇肢ID | | | | |
-
 ---
 
-### `build_ghost` — 組み立て・登錄
+### `construe` — 栞を組み立てよ
 
-ファスキクルスの末尾に一度書くだけにゃ。
+ファスキクルスの末尾に一度書くだけにゃ:
 
 ```lean
-build_ghost
+construe
 ```
 
-- `ghost_on` で宣言した全ての處理器を自動収集して登錄するにゃ
-- `persistent` 變數がある場合は讀込・書出フックも自動生成されるにゃん♪
+- `eventum` で宣言した全ての處理器を自動收集して登錄するにゃ
+- `perpetua` 變數がある場合は讀込・書出フックも自動生成されるにゃん♪
+- 處理器内で例外が發生した場合は 500 Internal Server Error を返すにゃ
 
 ---
 
@@ -172,7 +204,7 @@ build_ghost
 | `ancora "id"` … `fineAncora` | 錨（クリック可能な文字列）|
 
 ```lean
-ghost_on "OnBoot" fun _ => do
+eventum "OnBoot" fun _ => do
   sakura; superficies 0
   loquiEtLinea "何をするにゃ？"
   optio "撫でる"   "OnNaderu"
@@ -213,17 +245,49 @@ ghost_on "OnBoot" fun _ => do
 
 ---
 
-## 完全なサンプル（永続化・分岐・選擇肢あり）
+## Reference 早見表
+
+主要事象の `referentiam` 番號一覽にゃ:
+
+| 事象 | ref 0 | ref 1 | ref 2 | ref 3 | ref 4 |
+|---|---|---|---|---|---|
+| `OnBoot` | 起動種別 (0=普通, 1=初囘, ...) | | | | |
+| `OnMouseDoubleClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
+| `OnMouseClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
+| `OnMinuteChange` | 時 | 分 | | | |
+| `OnSecondChange` | 時 | 分 | 秒 | | |
+| `OnChoiceSelect` | 選擇肢ID | | | | |
+
+---
+
+## DLL 配置場所
+
+```
+SSP/
+└── ghost/
+    └── (ゴースト名)/
+        ├── descript.txt
+        ├── shell/
+        │   └── master/               ← シェル畫像
+        └── ghost/
+            └── master/
+                ├── shiori.dll        ← ★ ここに置くにゃ
+                └── ghost_status.dat  ← 永続化ダータ（自動生成にゃ）
+```
+
+---
+
+## 完全なエクセンプルム（永続化・分岐・選擇肢あり）
 
 ```lean
 import UkaLean
 open UkaLean Sakura
 
-ghost_var persistent greetCount : Nat  := 0
-ghost_var persistent liked       : Bool := false
-ghost_var transient  talkCount  : Nat  := 0   -- 今囘の起動中だけにゃ
+varia perpetua  greetCount : Nat  := 0
+varia perpetua  liked       : Bool := false
+varia temporaria talkCount  : Nat  := 0   -- 今囘の起動中だけにゃ
 
-ghost_on "OnBoot" fun _ => do
+eventum "OnBoot" fun _ => do
   greetCount.modify (· + 1)
   let n ← greetCount.get
   sakura; superficies 0
@@ -236,7 +300,7 @@ ghost_on "OnBoot" fun _ => do
     loquiEtLinea s!"{n} 囘目の起動にゃ♪"
   finis
 
-ghost_on "OnClose" fun _ => do
+eventum "OnClose" fun _ => do
   sakura; superficies 3
   loquiEtLinea "またにゃー！"
   mora 400; linea
@@ -244,7 +308,7 @@ ghost_on "OnClose" fun _ => do
   loquiEtLinea "お疲れ樣でした。"
   finis
 
-ghost_on "OnMouseDoubleClick" fun req => do
+eventum "OnMouseDoubleClick" fun req => do
   talkCount.modify (· + 1)
   match req.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ？嬉しいにゃん♪"
@@ -252,7 +316,7 @@ ghost_on "OnMouseDoubleClick" fun req => do
   | _           => sakura; superficies 0; loqui "なでなでにゃ"
   finis
 
-ghost_on "OnMinuteChange" fun req => do
+eventum "OnMinuteChange" fun req => do
   match req.referentiam 1 with
   | some "00" =>
     let h := (req.referentiam 0).getD "?"
@@ -261,14 +325,14 @@ ghost_on "OnMinuteChange" fun req => do
     finis
   | _ => finis   -- 毎分は何もしにゃい
 
-build_ghost
+construe
 ```
 
 ---
 
-## 低レベル API（マクロを使はない場合）
+## 低水準 API（マクロを使はない場合）
 
-`ghost_var`/`ghost_on`/`build_ghost` を使はずに直接書くこともできるにゃ:
+`varia`/`eventum`/`construe` を使はずに直接書くこともできるにゃ:
 
 ```lean
 import UkaLean
@@ -295,122 +359,6 @@ initialize
 
 ---
 
-## DLL 構築と配置（SSP で動かすまで）
-
-### 0. ゴーストのディレクトーリウム構造（SSP の場合）
-
-SSP で動かすには、`ghost/master/` ディレクトーリウムに `shiori.dll` を置くにゃ。
-最終的に以下のやうな構成になるにゃん：
-
-```
-SSP/
-└── ghost/
-    └── (ゴースト名)/
-        ├── descript.txt
-        ├── shell/
-        │   └── master/          ← シェル画像
-        └── ghost/
-            └── master/
-                ├── shiori.dll   ← ★ ここに配置するにゃ
-                ├── ghost_status.dat   ← 永続化ダータ（自動生成にゃ）
-                └── (その他ゴーストファスキクルス)
-```
-
----
-
-### 1. Lean ビブリオテーカを構築するにゃ
-
-```bash
-# uka.lean のディレクトーリウムで実行するにゃ
-lake build
-```
-
-`.lake/build/lib/` に `libUkaLean.a`（静的ビブリオテーカ）が生成されるにゃ。
-
----
-
-### 2. 自分のゴーストの Lean ファスキクルスを作るにゃ
-
-`MyGhost.lean` のやうなファスキクルスを作るにゃ：
-
-```lean
--- MyGhost.lean
-import UkaLean
-open UkaLean Sakura
-
-ghost_var persistent greetCount : Nat := 0
-
-ghost_on "OnBoot" fun _ => do
-  greetCount.modify (· + 1)
-  let n ← greetCount.get
-  sakura; superficies 0
-  loquiEtLinea s!"起動 {n} 囘目にゃん！"
-  finis
-
-ghost_on "OnClose" fun _ => do
-  sakura; superficies 3
-  loquiEtLinea "またにゃー！"
-  finis
-
-build_ghost
-```
-
----
-
-### 3. shiori.c をゴーストの作業ディレクトーリウムにコピーするにゃ
-
-`ffi/shiori.c` は UkaLean リポジトーリウムに含まれているにゃ。
-ゴーストを作る際は、`ffi/shiori.c` を自分の作業ディレクトーリウムにコピーして使ふにゃ：
-
-```
-(自分のゴースト作業場)/
-├── MyGhost.lean   ← 自分で書いたゴーストにゃ
-├── shiori.c       ← uka.lean/ffi/shiori.c をコピーにゃ
-└── (生成される shiori.dll など)
-```
-
----
-
-### 4. shiori.dll をコンパイルするにゃ
-
-MinGW (gcc) で DLL を作るにゃ。`lake build` を先に實行しておくにゃん：
-
-```bash
-# ① Lean ビブリオテーカを構築にゃ（uka.lean のディレクトーリウムで）
-cd /path/to/uka.lean
-lake build
-
-# ② DLL をコンパイルにゃ（自分の作業ディレクトーリウムで）
-gcc -shared -o shiori.dll shiori.c \
-  -I$(lean --print-prefix)/include \
-  -L/path/to/uka.lean/.lake/build/lib -lUkaLean \
-  -L$(lean --print-prefix)/lib/lean -lleanrt \
-  -lws2_32 -lgmp -lpthread
-```
-
-> **Lean のパスを調べるにゃ:** `lean --print-prefix` で表示されるにゃ。
-> 例: `C:/Users/(名前)/.elan/toolchains/leanprover--lean4---v4.28.0`
-
----
-
-### 5. ゴーストの ghost/master/ に配置するにゃ
-
-```bash
-cp shiori.dll /path/to/SSP/ghost/(ゴースト名)/ghost/master/
-```
-
-必要にゃファスキクルスは `shiori.dll` 一つだけにゃ。
-（Lean ランタイムは静的にゃリンクされているにゃ）
-
----
-
-### 6. SSP で起動して確認にゃ
-
-SSP でゴーストを起動して OnBoot が動けば成功にゃん♪
-`ghost_status.dat` は `ghost/master/` に自動的に生成されるにゃ。
-
----
-
 ## 永続化ファスキクルスの形式
 
 `{ghost}/ghost_status.dat` に平文で保存されるにゃ:
@@ -420,8 +368,8 @@ greetCount=42
 liked=true
 ```
 
-- 1行1變數、`=` 区切りにゃ
-- `persistent` 變數のみ保存・復元されるにゃ（`transient` は保存されにゃい）
+- 1行1變數、`=` 區切りにゃ
+- `perpetua` 變數のみ保存・復元されるにゃ（`temporaria` は保存されにゃい）
 - ファスキクルスがない場合は `:= 初期値` が使はれるにゃ
 
 ---
@@ -441,8 +389,7 @@ uka.lean/
 │   ├── Nuculum.lean            ← 核心骨格（Shiori 型・事象經路設定）
 │   ├── Exporta.lean            ← @[export] FFI 輸出關數群
 │   ├── StatusPermanens.lean    ← 永続化型クラスと補助關數
-│   ├── Macro.lean              ← ghost_var / ghost_on / build_ghost
-│   └── Exemplum.lean           ← 使用例
+│   └── Macro.lean              ← varia / eventum / construe
 ├── ffi/
 │   └── shiori.c                ← C 包裝（SSP ↔ Lean 橋渡し）
 └── Main.lean                   ← 模擬試驗用實行體

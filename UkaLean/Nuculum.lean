@@ -55,11 +55,15 @@ def tracta (s : Shiori) (rogatio : Rogatio) : IO Responsum := do
   -- でも處理器は呼ぶにゃ（副作用のために）
   match s.tractatores.lookup rogatio.nomen with
   | some tractator =>
-    -- SakuraScript モナドを實行して文字列を得るにゃん
-    let scriptum ← Sakura.currere (tractator rogatio)
-    match rogatio.methodus with
-    | .pete     => return Responsum.ok scriptum
-    | .notifica => return Responsum.nihil  -- NOTIFY は Value を返さにゃいにゃ
+    try
+      -- SakuraScript モナドを實行して文字列を得るにゃん
+      let scriptum ← Sakura.currere (tractator rogatio)
+      match rogatio.methodus with
+      | .pete     => return Responsum.ok scriptum
+      | .notifica => return Responsum.nihil  -- NOTIFY は Value を返さにゃいにゃ
+    catch _ =>
+      -- 處理器内で例外が發生した場合は 500 を返すにゃ
+      return Responsum.errorInternus
   | none =>
     -- 處理器が見つからにゃかった場合は 204 にゃ
     return Responsum.nihil

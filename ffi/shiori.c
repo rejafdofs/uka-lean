@@ -5,11 +5,12 @@
  * SSP 等のベースウェアはこの DLL の load/unload/request を呼ぶにゃん。
  *
  * 構築方法:
- *   lake build
+ *   lake build Ghost
  *   gcc -shared -o shiori.dll ffi/shiori.c \
- *     -I$(lean --print-prefix)/include \
- *     -L.lake/build/lib -lUkaLean \
- *     -L$(lean --print-prefix)/lib/lean -lleanrt \
+ *     -I"$(lean --print-prefix)/include" \
+ *     -L.lake/build/lib -lGhost \
+ *     -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean \
+ *     -L"$(lean --print-prefix)/lib/lean" -lleanrt \
  *     -lws2_32 -lgmp -lpthread
  */
 
@@ -47,7 +48,7 @@ extern uint32_t lean_shiori_unload(lean_object* world);
 extern lean_object* lean_shiori_request(lean_object* req_str, lean_object* world);
 
 /* Lean 使用者モドゥルスの初期化關數にゃん（lake build が生成するにゃ）*/
-extern lean_object* initialize_UkaLean(uint8_t builtin, lean_object* world);
+extern lean_object* initialize_Ghost(uint8_t builtin, lean_object* world);
 
 static int g_lean_initialized = 0;
 
@@ -58,7 +59,8 @@ static int ensure_lean_initialized(void) {
     if (g_lean_initialized) return 1;
 
     lean_initialize_runtime_module();
-    lean_object* res = initialize_UkaLean(1 /* builtin=true */, lean_io_mk_world());
+    /* Ghost モドゥルスを初期化すれば UkaLean も連鎖初期化されるにゃ */
+    lean_object* res = initialize_Ghost(1 /* builtin=true */, lean_io_mk_world());
     if (lean_io_result_is_ok(res)) {
         lean_dec_ref(res);
         g_lean_initialized = 1;
@@ -89,12 +91,6 @@ BOOL __cdecl load(HGLOBAL h, long len) {
     GlobalFree(h);
 
     /* Lean 側の load 處理を呼ぶにゃん */
-    lean_object* world = lean_io_mk_world();
-    lean_object* io_res = lean_apply_2(
-        lean_box(0),  /* dummy for BaseIO */
-        dir_obj, world
-    );
-    /* 直接呼出しにゃん */
     uint32_t result = lean_shiori_load(dir_obj, lean_io_mk_world());
     return result ? TRUE : FALSE;
 }

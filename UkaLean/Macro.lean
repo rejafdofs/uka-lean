@@ -1,6 +1,6 @@
 -- UkaLean.Macro
 -- ゴーストDSLマクロにゃん♪
--- ghost_var / ghost_on / build_ghost の3つのマクロを提供するにゃ
+-- varia / eventum / construe の3つのマクロを提供するにゃ
 
 import Lean
 import UkaLean.StatusPermanens
@@ -14,7 +14,7 @@ namespace UkaLean
 -- 環境拡張の定義にゃん
 -- ═══════════════════════════════════════════════════
 
-/-- ghost_var 宣言の情報にゃん -/
+/-- varia 宣言の情報にゃん -/
 structure GhostVarDecl where
   /-- 變數名にゃ（例: `greetCount）-/
   nomen       : Name
@@ -23,14 +23,14 @@ structure GhostVarDecl where
   /-- true なら ghost_status.dat に永続化するにゃん -/
   permanet    : Bool
 
-/-- ghost_on 宣言の情報にゃん -/
+/-- eventum 宣言の情報にゃん -/
 structure GhostEventDecl where
   /-- イベント名にゃ（例: "OnBoot"）-/
   nomen          : String
   /-- 生成した處理器の完全修飾名にゃ -/
   tractatorNomen : Name
 
-/-- ゴーストの累積宣言にゃん。build_ghost 時に全部參照するにゃ -/
+/-- ゴーストの累積宣言にゃん。construe 時に全部參照するにゃ -/
 structure GhostAccumulatio where
   vars   : Array GhostVarDecl   := #[]
   events : Array GhostEventDecl := #[]
@@ -49,13 +49,13 @@ initialize ghostAccumulatioExt : EnvExtension GhostAccumulatio ←
   registerEnvExtension (pure {})
 
 -- ═══════════════════════════════════════════════════
--- ghost_var マクロにゃん
+-- varia マクロにゃん
 -- ═══════════════════════════════════════════════════
 
 /-- 永続化變數を宣言するにゃん♪
     `initialize greetCount : IO.Ref Nat ← IO.mkRef 0` を生成して
     ghost_status.dat に保存・復元されるやうにするにゃ -/
-elab "ghost_var" "persistent" n:ident ":" t:term ":=" v:term : command => do
+elab "varia" "perpetua" n:ident ":" t:term ":=" v:term : command => do
   -- initialize を生成するにゃ
   elabCommand (← `(initialize $n : IO.Ref $t ← IO.mkRef $v))
   -- 環境拡張に登錄するにゃ♪
@@ -67,7 +67,7 @@ elab "ghost_var" "persistent" n:ident ":" t:term ":=" v:term : command => do
 /-- 一時變數を宣言するにゃん。
     `initialize lastEvent : IO.Ref String ← IO.mkRef ""` を生成するにゃ。
     永続化されにゃいにゃ -/
-elab "ghost_var" "transient" n:ident ":" t:term ":=" v:term : command => do
+elab "varia" "temporaria" n:ident ":" t:term ":=" v:term : command => do
   -- initialize を生成するにゃ
   elabCommand (← `(initialize $n : IO.Ref $t ← IO.mkRef $v))
   -- 環境拡張に登錄するにゃ（permanet = false）
@@ -77,13 +77,13 @@ elab "ghost_var" "transient" n:ident ":" t:term ":=" v:term : command => do
           nomen := n.getId, typusSyntax := t, permanet := false } }
 
 -- ═══════════════════════════════════════════════════
--- ghost_on マクロにゃん
+-- eventum マクロにゃん
 -- ═══════════════════════════════════════════════════
 
-/-- イベント處理器を宣言するにゃん♪
+/-- 事象處理器を宣言するにゃん♪
     `def _tractator_OnBoot : UkaLean.Tractator := body` を即時生成するにゃ。
     型エッロルはここで檢出されるにゃ -/
-elab "ghost_on" eventName:str body:term : command => do
+elab "eventum" eventName:str body:term : command => do
   let nomen := eventName.getString
   -- _tractator_OnBoot のやうな識別子を作るにゃ
   let tractatorBaseName := "_tractator_" ++ nomen
@@ -100,13 +100,13 @@ elab "ghost_on" eventName:str body:term : command => do
           nomen, tractatorNomen := tractatorFullName } }
 
 -- ═══════════════════════════════════════════════════
--- build_ghost マクロにゃん
+-- construe マクロにゃん
 -- ═══════════════════════════════════════════════════
 
 /-- ゴーストを組み立てて SSP に登錄するにゃん♪
-    ghost_var と ghost_on の宣言を讀み取り、栞を構築・登錄するにゃ。
+    varia と eventum の宣言を讀み取り、栞を構築・登錄するにゃ。
     永続變數がある場合は讀込・書出フックも自動生成するにゃ -/
-elab "build_ghost" : command => do
+elab "construe" : command => do
   let env ← getEnv
   let acc := ghostAccumulatioExt.getState env
   let persistentVars := acc.vars.filter (·.permanet)
