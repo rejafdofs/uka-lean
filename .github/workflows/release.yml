@@ -10,27 +10,27 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+      - name: Install Rust (stable + i686 target)
+        uses: dtolnay/rust-toolchain@stable
         with:
-          msystem: MINGW32
-          install: mingw-w64-i686-gcc
-          update: true
+          targets: i686-pc-windows-msvc
 
       - name: Build 32-bit Proxy (shiori.dll)
-        shell: msys2 {0}
         run: |
-          gcc -m32 -shared -o shiori.dll ffi/proxy32.c
+          cd proxy
+          cargo build --release --package proxy32 --target i686-pc-windows-msvc
+          Copy-Item target\i686-pc-windows-msvc\release\shiori.dll ..\shiori.dll
 
       - name: Build 64-bit Host (ghost.exe)
-        shell: powershell
         run: |
-          gcc -m64 -o ghost.exe ffi/proxy64.c
+          cd proxy
+          cargo build --release --package ghost_host
+          Copy-Item target\release\ghost.exe ..\ghost.exe
 
       - name: Upload binaries to Release
         uses: softprops/action-gh-release@v2
