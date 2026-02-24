@@ -19,7 +19,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         if (lastSlash) {
             *lastSlash = '\0';
         }
-        strcat(szHostPath, "\\uka_host.exe");
+        strcat(szHostPath, "\\ghost.exe");
     }
     return TRUE;
 }

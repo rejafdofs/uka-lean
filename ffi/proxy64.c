@@ -22,7 +22,7 @@ int main() {
     if (lastSlash) {
         *lastSlash = '\0';
     }
-    strcat(szDllPath, "\\uka_lean.dll");
+    strcat(szDllPath, "\\ghost.dll");
 
     // 直に生成された眞の 64-bit 實体を讀み込むにゃ
     HMODULE hDll = LoadLibraryA(szDllPath);
