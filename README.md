@@ -94,6 +94,8 @@ curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shi
 if (!(Test-Path .\ffi\shiori.c)) {
   New-Item -ItemType Directory -Force ffi | Out-Null
   curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
+  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/proxy32.c" -o "ffi/proxy32.c"
+  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/proxy64.c" -o "ffi/proxy64.c"
 }
 lake update
 $leanPrefix = (lean --print-prefix).Trim()
@@ -103,15 +105,21 @@ $ghostLib = Get-ChildItem .lake\build\lib -Filter *_Ghost.a -File | Select-Objec
 $ukaLib   = Get-ChildItem .lake\packages\uka-lean\.lake\build\lib -Filter *_UkaLean.a -File | Select-Object -First 1 -ExpandProperty FullName
 $initSym  = (nm -g $ghostLib | Select-String " T initialize_.*_Ghost$" | Select-Object -First 1).ToString().Trim().Split()[-1]
 
-leanc -shared -o shiori.dll ffi/shiori.c `
+# 眞の 64-bit 實体を構築するにゃ
+leanc -shared -o ghost.dll ffi/shiori.c `
   -D "initialize_Ghost=$initSym" `
   -I "$leanPrefix/include" `
   "$ghostLib" `
   "$ukaLib" `
   -lws2_32
+
+# 32-bit の SSP と橋渡しする代理(proxy)を構築するにゃ
+# ※ MSYS2 など 32-bit 用の gcc が別途必要にゃん (例: pacman -S mingw-w64-i686-gcc)
+C:\msys64\mingw32\bin\gcc.exe -shared -o shiori.dll ffi/proxy32.c
+gcc -m64 -o ghost.exe ffi/proxy64.c
 ```
 
-`shiori.dll` が完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
+`shiori.dll`, `ghost.exe`, `ghost.dll` の3つが完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
 
 ---
 
@@ -294,6 +302,16 @@ eventum "OnBoot" fun _ => do
 
 ---
 
+## 64-bit DLL の讀込（代理・Proxy の利用）
+
+Lean 4 は 64-bit 向けのバイナリしか出力できにゃいにゃ。一方、SSP は 32-bit アッパラートゥス(apparatus)にゃので、そのまゝでは變換した DLL を讀み込めにゃいにゃん…。
+そのため、32-bit DLL として振る舞ふ **代理（proxy）** が必要になるにゃ。
+
+そこで、32-bit の SSP と 64-bit の Lean 實体を橋渡しする自前の代理(`proxy32.c`, `proxy64.c`)を準備したにゃん♪
+`shiori.dll` が SSP と通信し、そこから `ghost.exe` (64-bitプロケッスス) を呼び出して、眞の實体 `ghost.dll` を動かす仕組にゃ！
+
+---
+
 ## DLL 配置場所
 
 ```
@@ -305,7 +323,9 @@ SSP/
         │   └── master/               ← シェル畫像
         └── ghost/
             └── master/
-                ├── shiori.dll        ← ★ ここにゃ
+                ├── shiori.dll        ← ★ SSP から直接讀まれる 32-bit 代理にゃ
+                ├── ghost.exe         ← ★ 代理から呼ばれる 64-bit の中繼プロケッススにゃ
+                ├── ghost.dll         ← ★ Lean で構築した 64-bit の眞の實体にゃ
                 └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
 ```
 
