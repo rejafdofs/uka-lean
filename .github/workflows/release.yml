@@ -1,0 +1,50 @@
+name: Build and Release Proxies
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_proxies:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          install: mingw-w64-i686-gcc
+          update: true
+
+      - name: Build 32-bit Proxy (shiori.dll)
+        shell: msys2 {0}
+        run: |
+          gcc -m32 -shared -o shiori.dll ffi/proxy32.c
+
+      - name: Build 64-bit Host (ghost.exe)
+        shell: powershell
+        run: |
+          gcc -m64 -o ghost.exe ffi/proxy64.c
+
+      - name: Upload binaries to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            shiori.dll
+            ghost.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts (for manual runs)
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: proxies
+          path: |
+            shiori.dll
+            ghost.exe
