@@ -21,18 +21,21 @@ lake new my-ghost lib
 cd my-ghost
 ```
 
-### ② `lakefile.toml` に `require` を追記するにゃ
+### ② `lakefile.lean` に `require` を追記するにゃ
 
-```toml
+```lean
 name = "my-ghost"
 version = "0.1.0"
 
-require uka-lean from git
-  "https://github.com/rejafdofs/uka-lean" @ "main"
+[[require]]
+git = "https://github.com/rejafdofs/uka-lean"
+rev = "master"
+name = "uka-lean"
 
 [[lean_lib]]
 name = "Ghost"
 globs = ["Ghost"]
+
 ```
 
 ### ③ `Ghost.lean` を書くにゃ
