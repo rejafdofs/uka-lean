@@ -7,9 +7,163 @@ use std::io::{Read, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{GlobalFree, BOOL};
+use windows_sys::Win32::Globalization::{
+    MultiByteToWideChar, WideCharToMultiByte, CP_ACP, CP_UTF8,
+};
 use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_FIXED};
 
 type HGLOBAL = *mut core::ffi::c_void;
+
+// にゃ：SSP は Windows ANSI(CP_ACP) でパスを渡すにゃ。Shift_JIS 等でも正しく變換するにゃ
+fn ansi_bytes_to_string(bytes: &[u8]) -> String {
+    // 末尾のヌル・バックスラッシュを取り除くにゃ
+    let trimmed = match bytes.iter().rposition(|&b| b != 0 && b != b'\\') {
+        Some(pos) => &bytes[..=pos],
+        None => return String::new(),
+    };
+    // CP_ACP = 0
+    let wlen = unsafe {
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            trimmed.as_ptr() as _,
+            trimmed.len() as i32,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
+    if wlen <= 0 {
+        return String::from_utf8_lossy(trimmed).into_owned();
+    }
+    let mut wbuf = vec![0u16; wlen as usize];
+    unsafe {
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            trimmed.as_ptr() as _,
+            trimmed.len() as i32,
+            wbuf.as_mut_ptr(),
+            wlen,
+        );
+    }
+    String::from_utf16_lossy(&wbuf)
+}
+
+// Windows ANSI(Shift_JIS) のバイト列を UTF-8文字列のバイト列に變換するにゃん
+fn ansi_to_utf8_bytes(bytes: &[u8]) -> Vec<u8> {
+    let wlen = unsafe {
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            bytes.as_ptr() as _,
+            bytes.len() as i32,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
+    if wlen <= 0 {
+        return bytes.to_vec(); // フォールバック(代替)にゃ
+    }
+    let mut wbuf = vec![0u16; wlen as usize];
+    unsafe {
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            bytes.as_ptr() as _,
+            bytes.len() as i32,
+            wbuf.as_mut_ptr(),
+            wlen,
+        );
+    }
+
+    let u8len = unsafe {
+        WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            wbuf.as_ptr(),
+            wlen,
+            core::ptr::null_mut(),
+            0,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        )
+    };
+    if u8len <= 0 {
+        return bytes.to_vec();
+    }
+    let mut u8buf = vec![0u8; u8len as usize];
+    unsafe {
+        WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            wbuf.as_ptr(),
+            wlen,
+            u8buf.as_mut_ptr() as _,
+            u8len,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+    }
+    u8buf
+}
+
+// UTF-8文字列のバイト列を Windows ANSI(Shift_JIS) のバイト列に變換するにゃん
+fn utf8_to_ansi_bytes(bytes: &[u8]) -> Vec<u8> {
+    let wlen = unsafe {
+        MultiByteToWideChar(
+            CP_UTF8,
+            0,
+            bytes.as_ptr() as _,
+            bytes.len() as i32,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
+    if wlen <= 0 {
+        return bytes.to_vec();
+    }
+    let mut wbuf = vec![0u16; wlen as usize];
+    unsafe {
+        MultiByteToWideChar(
+            CP_UTF8,
+            0,
+            bytes.as_ptr() as _,
+            bytes.len() as i32,
+            wbuf.as_mut_ptr(),
+            wlen,
+        );
+    }
+
+    let ansi_len = unsafe {
+        WideCharToMultiByte(
+            CP_ACP,
+            0,
+            wbuf.as_ptr(),
+            wlen,
+            core::ptr::null_mut(),
+            0,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        )
+    };
+    if ansi_len <= 0 {
+        return bytes.to_vec();
+    }
+    let mut ansi_buf = vec![0u8; ansi_len as usize];
+    unsafe {
+        WideCharToMultiByte(
+            CP_ACP,
+            0,
+            wbuf.as_ptr(),
+            wlen,
+            ansi_buf.as_mut_ptr() as _,
+            ansi_len,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+    }
+    ansi_buf
+}
 
 // にゃ：SSP は基本的に單一スレッドで SHIORI を呼ぶので Mutex で十分にゃ
 struct Nexus {
@@ -42,10 +196,10 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
         bytes
     };
 
-    let via = match core::str::from_utf8(&via_bytes) {
-        Ok(s) => s.trim_end_matches(['\0', '\\']).to_owned(),
-        Err(_) => return 0,
-    };
+    let via = ansi_bytes_to_string(&via_bytes);
+    if via.is_empty() {
+        return 0;
+    }
 
     // ② ghost.exe を起動するにゃ（同じディレクトーリウムにあるはずにゃ）
     let host_via = format!("{via}\\ghost.exe");
@@ -98,12 +252,26 @@ pub unsafe extern "C" fn unload() -> BOOL {
 pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     // *len は入力時に要求文字列の長さにゃ（GlobalSize ではないにゃん！）
     let rogatio_len = (*len) as usize;
-    let rogatio = {
+    let raw_rogatio = {
         let ptr = GlobalLock(h) as *const u8;
         let bytes = core::slice::from_raw_parts(ptr, rogatio_len).to_vec();
         GlobalUnlock(h);
         GlobalFree(h);
         bytes
+    };
+
+    // SSP から來た要求が Shift_JIS(ANSI) か UTF-8 か判定するにゃ（Charset: UTF-8 が無ければ ANSI と看做す）
+    let is_utf8 = if let Ok(s) = core::str::from_utf8(&raw_rogatio) {
+        s.contains("Charset: UTF-8") || s.contains("Charset: utf-8")
+    } else {
+        false
+    };
+
+    let rogatio = if is_utf8 {
+        raw_rogatio
+    } else {
+        // Shift_JIS -> UTF-8 變換をかませるにゃ！ Lean 側は常に UTF-8 として處理できるやうになるにゃ♪
+        ansi_to_utf8_bytes(&raw_rogatio)
     };
 
     let mut guard = NEXUS.lock().unwrap();
@@ -125,7 +293,7 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
         return core::ptr::null_mut();
     }
 
-    // 應答: [resp_len:u32LE][bytes]
+    // 應答(responsum)
     let resp_len = match lege_u32(&mut n.rivus) {
         Ok(v) => v as usize,
         Err(_) => {
@@ -139,22 +307,29 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
         return core::ptr::null_mut();
     }
 
-    let out_h = GlobalAlloc(GMEM_FIXED, resp_len) as HGLOBAL;
+    let mut u8_resp = vec![0u8; resp_len];
+    if n.rivus.read_exact(&mut u8_resp).is_err() {
+        *len = 0;
+        return core::ptr::null_mut();
+    }
+
+    // ghost.dll(Lean) は UTF-8 で應答を返すにゃ。元が ANSI なら Shift_JIS に變換して返すにゃん！
+    let final_resp = if is_utf8 {
+        u8_resp
+    } else {
+        utf8_to_ansi_bytes(&u8_resp)
+    };
+    let final_len = final_resp.len();
+
+    let out_h = GlobalAlloc(GMEM_FIXED, final_len) as HGLOBAL;
     if out_h.is_null() {
-        // 捨てるにゃ
-        let mut sink = vec![0u8; resp_len];
-        let _ = n.rivus.read_exact(&mut sink);
         *len = 0;
         return core::ptr::null_mut();
     }
 
-    let slice = core::slice::from_raw_parts_mut(out_h as *mut u8, resp_len);
-    if n.rivus.read_exact(slice).is_err() {
-        GlobalFree(out_h as _);
-        *len = 0;
-        return core::ptr::null_mut();
-    }
+    let slice = core::slice::from_raw_parts_mut(out_h as *mut u8, final_len);
+    slice.copy_from_slice(&final_resp);
 
-    *len = resp_len as i32;
+    *len = final_len as i32;
     out_h
 }
