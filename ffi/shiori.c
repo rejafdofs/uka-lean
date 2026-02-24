@@ -71,6 +71,11 @@ extern lean_object* lean_shiori_request(lean_object* req_str, lean_object* world
 /* Lean 使用者モドゥルスの初期化關數にゃん（lake build が生成するにゃ）*/
 extern lean_object* initialize_Ghost(uint8_t builtin, lean_object* world);
 
+/* Lean ランタイムの内部初期化關數群にゃ（lean.h には無いため自分で宣言するにゃん）*/
+extern void lean_initialize_runtime_module(void);
+extern void lean_init_task_manager(void);
+extern void lean_io_mark_end_initialization(void);
+
 static int g_lean_initialized = 0;
 
 /* ──────────────────────────────────────────────
@@ -79,15 +84,21 @@ static int g_lean_initialized = 0;
 static int ensure_lean_initialized(void) {
     if (g_lean_initialized) return 1;
 
-    /* builtin=0 にすると Lean ランタイム自體を先に初期化してくれるにゃん
-     * （builtin=1 だと既に初期化濟みと假定してスキップするから、
-     *   LoadLibraryW で外部から讀み込んだ場合にクラッシュするにゃ）*/
-    lean_object* res = initialize_Ghost(0 /* builtin=false */, lean_io_mk_world());
+    /* Lean 4 の正規の初期化手順に從ふにゃ */
+    lean_initialize_runtime_module();
+    
+    /* モドゥルスの初期化にゃん（builtin=1 で呼ぶのが正解だったにゃ） */
+    lean_object* res = initialize_Ghost(1 /* builtin=true */, lean_io_mk_world());
+    
     if (lean_io_result_is_ok(res)) {
         lean_dec_ref(res);
+        lean_io_mark_end_initialization();
+        lean_init_task_manager();
         g_lean_initialized = 1;
         return 1;
     } else {
+        /* 初期化失敗時のエッロル(error)を出力しておくようにゃ */
+        lean_io_result_show_error(res);
         lean_dec_ref(res);
         return 0;
     }
