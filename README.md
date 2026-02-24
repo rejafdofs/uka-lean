@@ -115,9 +115,15 @@ leanc -shared -o ghost.dll ffi/shiori.c `
   "$ukaLib" `
   -lws2_32
 
-# Lean ランタイム DLL を同梱するにゃ
-# （ghost.dll が動作するのに libleanshared 等が必要にゃん）
-Copy-Item "$leanPrefix\bin\*.dll" "." -ErrorAction SilentlyContinue
+# Lean ランタイム DLL を同梱するにゃ（ghost.dll の動作に必要にゃ最小限だけにゃん）
+@(
+  "libleanshared.dll",
+  "libleanshared_1.dll",
+  "libleanshared_2.dll",
+  "libInit_shared.dll",
+  "libc++.dll",
+  "zlib1.dll"
+) | ForEach-Object { Copy-Item "$leanPrefix\bin\$_" "." -ErrorAction SilentlyContinue }
 ```
 
 `shiori.dll`, `ghost.exe`, `ghost.dll`, および Lean ランタイム DLL の一式が完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
