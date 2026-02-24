@@ -75,33 +75,37 @@ my-ghost/
     └── shiori.c   ← ここにゃ
 ```
 
-### ⑤ 構築して DLL を作るにゃ
-
 ```bash
-leanPrefix="$(lean --print-prefix)"
-ghostLib="$(echo .lake/build/lib/*_Ghost.a)"
-ukaLib="$(echo .lake/packages/uka-lean/.lake/build/lib/*_UkaLean.a)"
-initSym="$(nm -g "$ghostLib" | awk '/ T initialize_.*_Ghost$/ { print $3; exit }')"
-
-lake build Ghost:static UkaLean:static
-leanc -shared -o shiori.dll ffi/shiori.c \
-  -D"initialize_Ghost=$initSym" \
-  -I"$leanPrefix/include" \
-  "$ghostLib" \
-  "$ukaLib" \
-  -lws2_32
+mkdir -p ffi
+curl -L -o ffi/shiori.c https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c
 ```
 
 ```powershell
+New-Item -ItemType Directory -Force ffi | Out-Null
+curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
+```
+
+### ⑤ 構築して DLL を作るにゃ
+
+以下を **ゴーストのプロジェクトルート**（`lakefile.toml` がある場所）で実行するにゃ。
+`examples/` など設定ファイルがない場所で実行すると失敗するにゃん。
+
+```powershell
+if (!(Test-Path .\ffi\shiori.c)) {
+  New-Item -ItemType Directory -Force ffi | Out-Null
+  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
+}
+lake update
 $leanPrefix = (lean --print-prefix).Trim()
-$ghostLib = (Get-ChildItem .lake/build/lib -Filter *_Ghost.a | Select-Object -First 1 -ExpandProperty FullName)
-$ukaLib = (Get-ChildItem .lake/packages/uka-lean/.lake/build/lib -Filter *_UkaLean.a | Select-Object -First 1 -ExpandProperty FullName)
-$initSym = (nm -g $ghostLib | Select-String " T initialize_.*_Ghost$" | Select-Object -First 1).ToString().Trim().Split()[-1]
 
 lake build Ghost:static UkaLean:static
+$ghostLib = Get-ChildItem .lake\build\lib -Filter *_Ghost.a -File | Select-Object -First 1 -ExpandProperty FullName
+$ukaLib   = Get-ChildItem .lake\packages\uka-lean\.lake\build\lib -Filter *_UkaLean.a -File | Select-Object -First 1 -ExpandProperty FullName
+$initSym  = (nm -g $ghostLib | Select-String " T initialize_.*_Ghost$" | Select-Object -First 1).ToString().Trim().Split()[-1]
+
 leanc -shared -o shiori.dll ffi/shiori.c `
   -D "initialize_Ghost=$initSym" `
-  -I"$leanPrefix/include" `
+  -I "$leanPrefix/include" `
   "$ghostLib" `
   "$ukaLib" `
   -lws2_32
