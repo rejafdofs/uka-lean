@@ -127,10 +127,15 @@ static int ensure_lean_initialized(void) {
 __declspec(dllexport)
 #endif
 BOOL __cdecl load(HGLOBAL h, long len) {
+    trace_log("[shiori.c] load: ENTRY");
+
     if (!ensure_lean_initialized()) {
+        trace_log("[shiori.c] load: ensure_lean_initialized FAILED");
         GlobalFree(h);
         return FALSE;
     }
+
+    trace_log("[shiori.c] load: ensure_lean_initialized SUCCESS");
 
     /* HGLOBAL から家ディレクトーリウム文字列を取り出すにゃん */
     char* dir = (char*)GlobalLock(h);
