@@ -14,6 +14,19 @@ use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, 
 
 type HGLOBAL = *mut core::ffi::c_void;
 
+macro_rules! log_trace {
+    ($($arg:tt)*) => {
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("proxy32_trace.txt")
+        {
+            use std::io::Write;
+            let _ = writeln!(file, $($arg)*);
+        }
+    };
+}
+
 // にゃ：SSP は Windows ANSI(CP_ACP) でパスを渡すにゃ。Shift_JIS 等でも正しく變換するにゃ
 fn ansi_bytes_to_string(bytes: &[u8]) -> String {
     // 末尾のヌル・バックスラッシュを取り除くにゃ
@@ -187,6 +200,7 @@ fn lege_u32(r: &mut impl Read) -> std::io::Result<u32> {
 // SSP は HGLOBAL に格納された文字列 + 長さを渡す。戻り値は BOOL にゃ
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
+    log_trace!("=== load called (len={}) ===", len);
     // ① ディレクトーリウム文字列を取り出して HGLOBAL を開放するにゃ
     let via_bytes = {
         let ptr = GlobalLock(h) as *const u8;
@@ -198,8 +212,10 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
 
     let via = ansi_bytes_to_string(&via_bytes);
     if via.is_empty() {
+        log_trace!("load failed: ansi_bytes_to_string empty");
         return 0;
     }
+    log_trace!("load via: {}", via);
 
     // ② ghost.exe を起動するにゃ（同じディレクトーリウムにあるはずにゃ）
     let host_via = format!("{via}\\ghost.exe");
@@ -209,7 +225,10 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
         .spawn()
     {
         Ok(c) => c,
-        Err(_) => return 0,
+        Err(e) => {
+            log_trace!("load failed: failed to spawn ghost.exe: {}", e);
+            return 0;
+        }
     };
     let mut calamus = filius.stdin.take().unwrap();
     let mut rivus = filius.stdout.take().unwrap();
@@ -220,15 +239,18 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
         && calamus.write_all(&via_bytes).is_ok()
         && calamus.flush().is_ok();
     if !ok {
+        log_trace!("load failed: pipe write error");
         return 0;
     }
 
     // ④ 應答: [0/1: u8]
     let mut resp = [0u8; 1];
     if rivus.read_exact(&mut resp).is_err() || resp[0] == 0 {
+        log_trace!("load failed: ghost_host returned false or pipe closed");
         return 0;
     }
 
+    log_trace!("load success");
     *NEXUS.lock().unwrap() = Some(Nexus {
         filius,
         calamus,
@@ -239,6 +261,7 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn unload() -> BOOL {
+    log_trace!("=== unload called ===");
     if let Some(mut n) = NEXUS.lock().unwrap().take() {
         // ONERARE 終了命令: [2u8]
         let _ = n.calamus.write_all(&[2u8]);
@@ -250,6 +273,7 @@ pub unsafe extern "C" fn unload() -> BOOL {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
+    log_trace!("=== request called (len={}) ===", *len);
     // *len は入力時に要求文字列の長さにゃ（GlobalSize ではないにゃん！）
     let rogatio_len = (*len) as usize;
     let raw_rogatio = {
@@ -268,16 +292,22 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     };
 
     let rogatio = if is_utf8 {
+        log_trace!("request is UTF-8");
+        log_trace!("REQUEST:\n{}", String::from_utf8_lossy(&raw_rogatio));
         raw_rogatio
     } else {
+        log_trace!("request is ANSI(Shift_JIS) -> converting to UTF-8");
         // Shift_JIS -> UTF-8 變換をかませるにゃ！ Lean 側は常に UTF-8 として處理できるやうになるにゃ♪
-        ansi_to_utf8_bytes(&raw_rogatio)
+        let u8b = ansi_to_utf8_bytes(&raw_rogatio);
+        log_trace!("REQUEST (UTF-8 conv):\n{}", String::from_utf8_lossy(&u8b));
+        u8b
     };
 
     let mut guard = NEXUS.lock().unwrap();
     let n = match guard.as_mut() {
         Some(n) => n,
         None => {
+            log_trace!("request failed: no NEXUS (not loaded)");
             *len = 0;
             return core::ptr::null_mut();
         }
@@ -289,6 +319,7 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
         && n.calamus.write_all(&rogatio).is_ok()
         && n.calamus.flush().is_ok();
     if !ok {
+        log_trace!("request failed: write to ghost_host pipe failed");
         *len = 0;
         return core::ptr::null_mut();
     }
@@ -297,32 +328,46 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     let resp_len = match lege_u32(&mut n.rivus) {
         Ok(v) => v as usize,
         Err(_) => {
+            log_trace!("request failed: failed to read resp_len from ghost_host");
             *len = 0;
             return core::ptr::null_mut();
         }
     };
 
     if resp_len == 0 {
+        log_trace!("request: resp_len was 0");
         *len = 0;
         return core::ptr::null_mut();
     }
 
     let mut u8_resp = vec![0u8; resp_len];
     if n.rivus.read_exact(&mut u8_resp).is_err() {
+        log_trace!(
+            "request failed: failed to read {} bytes from ghost_host",
+            resp_len
+        );
         *len = 0;
         return core::ptr::null_mut();
     }
 
     // ghost.dll(Lean) は UTF-8 で應答を返すにゃ。元が ANSI なら Shift_JIS に變換して返すにゃん！
     let final_resp = if is_utf8 {
+        log_trace!("RESP (UTF-8 pass-through): len={}", u8_resp.len());
         u8_resp
     } else {
-        utf8_to_ansi_bytes(&u8_resp)
+        let ansi_r = utf8_to_ansi_bytes(&u8_resp);
+        log_trace!(
+            "RESP (ANSI conv): len={} -> {}",
+            u8_resp.len(),
+            ansi_r.len()
+        );
+        ansi_r
     };
     let final_len = final_resp.len();
 
     let out_h = GlobalAlloc(GMEM_FIXED, final_len) as HGLOBAL;
     if out_h.is_null() {
+        log_trace!("request failed: GlobalAlloc returned NULL");
         *len = 0;
         return core::ptr::null_mut();
     }
@@ -331,5 +376,6 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     slice.copy_from_slice(&final_resp);
 
     *len = final_len as i32;
+    log_trace!("=== request done ===");
     out_h
 }

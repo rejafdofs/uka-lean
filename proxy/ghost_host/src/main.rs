@@ -17,6 +17,19 @@ type FnLoad = unsafe extern "C" fn(HGLOBAL, i32) -> i32;
 type FnUnload = unsafe extern "C" fn() -> i32;
 type FnRequest = unsafe extern "C" fn(HGLOBAL, *mut i32) -> HGLOBAL;
 
+macro_rules! log_trace {
+    ($($arg:tt)*) => {
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("ghost_host_trace.txt")
+        {
+            use std::io::Write;
+            let _ = writeln!(file, $($arg)*);
+        }
+    };
+}
+
 fn to_wide(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(once(0)).collect()
 }
@@ -51,6 +64,9 @@ fn main() {
 
     let hlib = unsafe { LoadLibraryW(dll_wide.as_ptr()) };
     if hlib.is_null() {
+        let err_code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
+        log_trace!("Failed to load ghost.dll: err_code={}", err_code);
+
         // エッロル(error)をファスキクルス(fasciculus)に記録するにゃ（診断用にゃ）
         let log_via = exe_dir.join("ghost_host_error.txt");
         let err_code = unsafe { windows_sys::Win32::Foundation::GetLastError() };
@@ -82,9 +98,13 @@ fn main() {
 
     let (f_load, f_unload, f_request) = match (f_load, f_unload, f_request) {
         (Some(a), Some(b), Some(c)) => (a, b, c),
-        _ => return,
+        _ => {
+            log_trace!("Failed to GetProcAddress");
+            return;
+        }
     };
 
+    log_trace!("=== ghost_host started ===");
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     let mut inn = stdin.lock();
@@ -98,41 +118,58 @@ fn main() {
         }
         match cmd[0] {
             1 => {
+                log_trace!("Cmd: LOAD");
                 // ONERARE(load): [len:u32LE][via_bytes] → [result:u8]
                 let len = match read_u32(&mut inn) {
                     Ok(n) => n as usize,
-                    Err(_) => break,
+                    Err(e) => {
+                        log_trace!("LOAD read len failed: {}", e);
+                        break;
+                    }
                 };
+                log_trace!("LOAD len={}", len);
                 let mut via_bytes = vec![0u8; len];
-                if inn.read_exact(&mut via_bytes).is_err() {
+                if let Err(e) = inn.read_exact(&mut via_bytes) {
+                    log_trace!("LOAD read bytes failed: {}", e);
                     break;
                 }
 
                 let result = unsafe {
                     // → ghost.dll の load() は HGLOBAL を GlobalFree するにゃ
                     let h = GlobalAlloc(GMEM_FIXED, len) as HGLOBAL;
+                    if h.is_null() {
+                        log_trace!("LOAD GlobalAlloc failed");
+                    }
                     let ptr = GlobalLock(h) as *mut u8;
                     core::ptr::copy_nonoverlapping(via_bytes.as_ptr(), ptr, len);
                     GlobalUnlock(h);
                     f_load(h, len as i32)
                 };
 
+                log_trace!("LOAD result={}", result);
                 let _ = out.write_all(&[if result != 0 { 1u8 } else { 0u8 }]);
                 let _ = out.flush();
             }
             2 => {
+                log_trace!("Cmd: UNLOAD");
                 // EXONERARE(unload): 終了にゃ
                 unsafe { f_unload() };
                 break;
             }
             3 => {
+                log_trace!("Cmd: REQUEST");
                 // ROGARE(request): [len:u32LE][req_bytes] → [resp_len:u32LE][resp_bytes]
                 let len = match read_u32(&mut inn) {
                     Ok(n) => n as usize,
-                    Err(_) => break,
+                    Err(e) => {
+                        log_trace!("REQUEST read len failed: {}", e);
+                        break;
+                    }
                 };
+                log_trace!("REQUEST len={}", len);
                 let mut req_bytes = vec![0u8; len];
-                if inn.read_exact(&mut req_bytes).is_err() {
+                if let Err(e) = inn.read_exact(&mut req_bytes) {
+                    log_trace!("REQUEST read bytes failed: {}", e);
                     break;
                 }
 
@@ -146,6 +183,7 @@ fn main() {
                     let resp_h = f_request(h, &mut resp_len);
 
                     if resp_h.is_null() || resp_len <= 0 {
+                        log_trace!("REQUEST ghost.dll returned NULL or resp_len<=0");
                         None
                     } else {
                         // → 返された HGLOBAL は ghost_host が GlobalFree するにゃ
@@ -153,6 +191,7 @@ fn main() {
                         let bytes = core::slice::from_raw_parts(ptr, resp_len as usize).to_vec();
                         GlobalUnlock(resp_h);
                         GlobalFree(resp_h as _);
+                        log_trace!("REQUEST returning {} bytes", bytes.len());
                         Some(bytes)
                     }
                 };
@@ -168,7 +207,10 @@ fn main() {
                 }
                 let _ = out.flush();
             }
-            _ => break,
+            c => {
+                log_trace!("Unknown cmd: {}", c);
+                break;
+            }
         }
     }
 }
