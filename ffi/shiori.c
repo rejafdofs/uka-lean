@@ -78,26 +78,41 @@ extern void lean_io_mark_end_initialization(void);
 
 static int g_lean_initialized = 0;
 
+static void trace_log(const char* msg) {
+    FILE* f = fopen("ghost_c_trace.txt", "a");
+    if (f) {
+        fprintf(f, "%s\n", msg);
+        fclose(f);
+    }
+}
+
 /* ──────────────────────────────────────────────
  * Lean 實行時環境の初期化にゃん
  * ────────────────────────────────────────────── */
 static int ensure_lean_initialized(void) {
     if (g_lean_initialized) return 1;
 
+    trace_log("[shiori.c] ensure_lean_initialized: start");
+
     /* Lean 4 の正規の初期化手順に從ふにゃ */
+    trace_log("[shiori.c] calling lean_initialize_runtime_module");
     lean_initialize_runtime_module();
     
-    /* モドゥルスの初期化にゃん（builtin=1 で呼ぶのが正解だったにゃ） */
+    trace_log("[shiori.c] calling initialize_Ghost(1)");
     lean_object* res = initialize_Ghost(1 /* builtin=true */, lean_io_mk_world());
     
+    trace_log("[shiori.c] initialize_Ghost returned");
     if (lean_io_result_is_ok(res)) {
         lean_dec_ref(res);
+        trace_log("[shiori.c] calling lean_io_mark_end_initialization");
         lean_io_mark_end_initialization();
+        trace_log("[shiori.c] calling lean_init_task_manager");
         lean_init_task_manager();
         g_lean_initialized = 1;
+        trace_log("[shiori.c] init OK");
         return 1;
     } else {
-        /* 初期化失敗時のエッロル(error)を出力しておくようにゃ */
+        trace_log("[shiori.c] init ERROR");
         lean_io_result_show_error(res);
         lean_dec_ref(res);
         return 0;
