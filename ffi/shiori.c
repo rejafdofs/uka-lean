@@ -79,6 +79,9 @@ static int g_lean_initialized = 0;
 static int ensure_lean_initialized(void) {
     if (g_lean_initialized) return 1;
 
+    /* Lean ランタイム自體を初期化するにゃん（DLL として讀み込まれた場合に不可缺にゃ）*/
+    lean_initialize_runtime_module();
+
     /* Ghost モドゥルスを初期化すれば UkaLean も連鎖初期化されるにゃ */
     lean_object* res = initialize_Ghost(1 /* builtin=true */, lean_io_mk_world());
     if (lean_io_result_is_ok(res)) {
