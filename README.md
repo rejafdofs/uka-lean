@@ -94,8 +94,10 @@ curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shi
 if (!(Test-Path .\ffi\shiori.c)) {
   New-Item -ItemType Directory -Force ffi | Out-Null
   curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
-  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/proxy32.c" -o "ffi/proxy32.c"
-  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/proxy64.c" -o "ffi/proxy64.c"
+}
+if (!(Test-Path .\shiori.dll)) {
+  curl.exe -L "https://github.com/rejafdofs/uka-lean/releases/latest/download/shiori.dll" -o "shiori.dll"
+  curl.exe -L "https://github.com/rejafdofs/uka-lean/releases/latest/download/ghost.exe" -o "ghost.exe"
 }
 lake update
 $leanPrefix = (lean --print-prefix).Trim()
@@ -112,11 +114,6 @@ leanc -shared -o ghost.dll ffi/shiori.c `
   "$ghostLib" `
   "$ukaLib" `
   -lws2_32
-
-# 32-bit の SSP と橋渡しする代理(proxy)を構築するにゃ
-# ※ MSYS2 など 32-bit 用の gcc が別途必要にゃん (例: pacman -S mingw-w64-i686-gcc)
-C:\msys64\mingw32\bin\gcc.exe -shared -o shiori.dll ffi/proxy32.c
-gcc -m64 -o ghost.exe ffi/proxy64.c
 ```
 
 `shiori.dll`, `ghost.exe`, `ghost.dll` の3つが完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
