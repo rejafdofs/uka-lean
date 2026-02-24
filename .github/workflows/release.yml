@@ -8,6 +8,8 @@ on:
 jobs:
   build_proxies:
     runs-on: windows-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -31,7 +33,7 @@ jobs:
           gcc -m64 -o ghost.exe ffi/proxy64.c
 
       - name: Upload binaries to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
