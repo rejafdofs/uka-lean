@@ -28,7 +28,7 @@ name = "my-ghost"
 version = "0.1.0"
 
 require uka-lean from git
-  "https://github.com/YourUser/uka.lean" @ "main"
+  "https://github.com/rejafdofs/uka-lean" @ "main"
 
 [[lean_lib]]
 name = "Ghost"
