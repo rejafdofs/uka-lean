@@ -59,6 +59,7 @@ BOOL __cdecl load(HGLOBAL h, long len) {
     WriteFile(hChildStdinWr, &len, sizeof(long), &written, NULL);
     WriteFile(hChildStdinWr, dir, len, &written, NULL);
     GlobalUnlock(h);
+    GlobalFree(h); // SSPが渡したhandleはここで開放するにゃん
 
     int res = 0;
     DWORD readBytes;
@@ -97,7 +98,8 @@ HGLOBAL __cdecl request(HGLOBAL h, long *len) {
         return NULL;
     }
     
-    long req_len = (long)GlobalSize(h);
+    // SHIORI規約: *len は入力時に要求文字列の長さ、出力時に応答文字列の長さを書くにゃ
+    long req_len = *len;  // GlobalSizeではなく必ず *len から取るにゃ！
     char* req = (char*)GlobalLock(h);
     
     int cmd = 3; // REQUEST
