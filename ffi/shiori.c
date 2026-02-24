@@ -5,13 +5,13 @@
  * SSP 等のベースウェアはこの DLL の load/unload/request を呼ぶにゃん。
  *
  * 構築方法:
- *   lake build Ghost
+ *   lake build Ghost:static UkaLean:static
  *   gcc -shared -o shiori.dll ffi/shiori.c \
  *     -I"$(lean --print-prefix)/include" \
  *     -L.lake/build/lib -lGhost \
  *     -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean \
- *     -L"$(lean --print-prefix)/lib/lean" -lleanrt \
- *     -lws2_32 -lgmp -lpthread
+ *     -L"$(lean --print-prefix)/lib/lean" -lleanshared \
+ *     -lws2_32
  */
 
 #include <lean/lean.h>
@@ -58,7 +58,6 @@ static int g_lean_initialized = 0;
 static int ensure_lean_initialized(void) {
     if (g_lean_initialized) return 1;
 
-    lean_initialize_runtime_module();
     /* Ghost モドゥルスを初期化すれば UkaLean も連鎖初期化されるにゃ */
     lean_object* res = initialize_Ghost(1 /* builtin=true */, lean_io_mk_world());
     if (lean_io_result_is_ok(res)) {

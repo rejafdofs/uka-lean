@@ -75,13 +75,25 @@ my-ghost/
 ### ⑤ 構築して DLL を作るにゃ
 
 ```bash
-lake build Ghost
+lake build Ghost:static UkaLean:static
 gcc -shared -o shiori.dll ffi/shiori.c \
   -I"$(lean --print-prefix)/include" \
   -L.lake/build/lib -lGhost \
   -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean \
-  -L"$(lean --print-prefix)/lib/lean" -lleanrt \
-  -lws2_32 -lgmp -lpthread
+  -L"$(lean --print-prefix)/lib/lean" -lleanshared \
+  -lws2_32
+```
+
+```powershell
+$leanPrefix = (lean --print-prefix).Trim()
+
+lake build Ghost:static UkaLean:static
+gcc -shared -o shiori.dll ffi/shiori.c `
+  -I"$leanPrefix/include" `
+  -L.lake/build/lib -lGhost `
+  -L.lake/packages/uka-lean/.lake/build/lib -lUkaLean `
+  -L"$leanPrefix/lib/lean" -lleanshared `
+  -lws2_32
 ```
 
 `shiori.dll` が完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
@@ -449,3 +461,4 @@ uka.lean/
 
 - [UKADOC Project](https://ssp.shillest.net/ukadoc/manual/index.html) — SHIORI/3.0 仕樣・SakuraScript 仕樣
 - [SSP](http://ssp.shillest.net/) — ベースウェア公式
+
