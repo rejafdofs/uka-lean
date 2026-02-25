@@ -45,8 +45,7 @@ def domusObtinere : IO String := do
 
 /-- C 側の load() から呼ばれるにゃん。
     家ディレクトーリウムを設定して初期化するにゃ -/
-@[export lean_shiori_load]
-unsafe def exportaLoad (catenaDominis : @& String) : IO UInt32 := do
+def exportaLoad (catenaDominis : @& String) : IO UInt32 := do
   let opt ← shioriGlobalis.get
   match opt with
   | some s =>
@@ -60,8 +59,7 @@ unsafe def exportaLoad (catenaDominis : @& String) : IO UInt32 := do
     return 0  -- FALSE: 栞が登錄されてにゃいにゃ
 
 /-- C 側の unload() から呼ばれるにゃん -/
-@[export lean_shiori_unload]
-unsafe def exportaUnload : IO UInt32 := do
+def exportaUnload : IO UInt32 := do
   -- 書出フックがあれば呼ぶにゃん♪（永続化ダータの保存にゃ）
   let opt ← shioriGlobalis.get
   match opt with
@@ -74,8 +72,7 @@ unsafe def exportaUnload : IO UInt32 := do
 
 /-- C 側の request() から呼ばれるにゃん。
     SHIORI/3.0 要求文字列を受け取り、應答文字列を返すにゃ -/
-@[export lean_shiori_request]
-unsafe def exportaRequest (catenaRogationis : @& String) : IO String := do
+def exportaRequest (catenaRogationis : @& String) : IO String := do
   try
     let opt ← shioriGlobalis.get
     match opt with
