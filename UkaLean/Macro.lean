@@ -129,6 +129,7 @@ elab "construe" : command => do
     -- 永続化にゃし: シンプレクス(simplex)にゃ registraShiori を使ふにゃ
     elabCommand (← `(
       initialize (UkaLean.registraShiori [$pariaTractatorum,*])
+      def main : IO Unit := UkaLean.loopPrincipalis
     ))
   else
     -- 永続化あり: 型タグ付き讀込・書出フックを生成するにゃ♪
@@ -182,6 +183,9 @@ elab "construe" : command => do
           let _via := _domus ++ "/ghost_status.bin"
           let _paria ← UkaLean.executareScripturam $terminusServandi
           UkaLean.scribeMappam _via _paria)))
+
+      def main : IO Unit := UkaLean.loopPrincipalis
     ))
 
 end UkaLean
+import UkaLean.Loop
