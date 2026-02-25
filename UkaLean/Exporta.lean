@@ -76,11 +76,14 @@ unsafe def exportaUnload : IO UInt32 := do
     SHIORI/3.0 要求文字列を受け取り、應答文字列を返すにゃ -/
 @[export lean_shiori_request]
 unsafe def exportaRequest (catenaRogationis : @& String) : IO String := do
-  let opt ← shioriGlobalis.get
-  match opt with
-  | some shiori =>
-    shiori.tractaCatenam catenaRogationis
-  | none =>
+  try
+    let opt ← shioriGlobalis.get
+    match opt with
+    | some shiori =>
+      shiori.tractaCatenam catenaRogationis
+    | none =>
+      return Responsum.errorInternus.adProtocollum
+  catch _ =>
     return Responsum.errorInternus.adProtocollum
 
 end UkaLean

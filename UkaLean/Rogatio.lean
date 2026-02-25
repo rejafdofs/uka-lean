@@ -50,7 +50,7 @@ private def parseCastellum (s : String) : Option (String × String) :=
     | [_] => none
     | clavis :: cetera =>
       let v := ":".intercalate cetera
-      some (clavis, String.ofList (v.toList.dropWhile (· == ' ')))
+      some (clavis, v.trim)
   | clavis :: cetera =>
     -- cetera を再結合（値に ": " が含まれてゐても大丈夫にゃん）
     some (clavis, ": ".intercalate cetera)
@@ -78,9 +78,7 @@ private def referentiaIndex (clavis : String) : Option Nat :=
     none
 
 /-- 文字列の前後の空白を除去する補助にゃん -/
-private def trimma (s : String) : String :=
-  String.ofList (s.toList.dropWhile Char.isWhitespace
-    |>.reverse |>.dropWhile Char.isWhitespace |>.reverse)
+private def trimma (s : String) : String := s.trim
 
 /-- SHIORI/3.0 要求文字列を完全に解釈するにゃん -/
 def interpreta (s : String) : Except String Rogatio := do
@@ -98,8 +96,9 @@ def interpreta (s : String) : Except String Rogatio := do
       let linea := trimma l
       if linea.isEmpty then break  -- 空行で終了にゃ
       match parseCastellum linea with
-      | some parElementum => cappitta := cappitta ++ [parElementum]
+      | some parElementum => cappitta := parElementum :: cappitta
       | none => pure ()  -- 解析できにゃい行は無視にゃ
+    cappitta := cappitta.reverse
 
     -- 既知の頭部を抽出するにゃん
     let nomen := match cappitta.lookup "ID" with
@@ -117,9 +116,10 @@ def interpreta (s : String) : Except String Rogatio := do
     for (k, v) in cappitta do
       match referentiaIndex k with
       | some n =>
-        pariaNumerata := pariaNumerata ++ [(n, v)]
+        pariaNumerata := (n, v) :: pariaNumerata
         if n + 1 > maximumIndex then maximumIndex := n + 1
       | none => pure ()
+    pariaNumerata := pariaNumerata.reverse
 
     -- 配列を構築するにゃん（空の配列から push で作るにゃ）
     let mut referentiae : Array String := #[]
