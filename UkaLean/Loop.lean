@@ -31,7 +31,7 @@ def ingressusU32 (stdin : IO.FS.Stream) : IO UInt32 := do
     - コマンド 1: LOAD (路徑讀取＋初期化後 [1] を返す)
     - コマンド 2: UNLOAD (終了後 [1] を返してループ拔ける)
     - コマンド 3: REQUEST (要求讀取＋長さと應答を返す) -/
-unsafe partial def loopPrincipalis : IO Unit := do
+unsafe def loopPrincipalis : IO Unit := do
   let stdin ← IO.getStdin
   let stdout ← IO.getStdout
 
