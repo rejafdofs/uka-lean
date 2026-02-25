@@ -83,7 +83,7 @@ unsafe def exportaRequest (catenaRogationis : @& String) : IO String := do
       shiori.tractaCatenam catenaRogationis
     | none =>
       return Responsum.errorInternus.adProtocollum
-  catch _ =>
-    return Responsum.errorInternus.adProtocollum
+  catch e =>
+    return s!"[FATAL in exportaRequest] {e}"
 
 end UkaLean

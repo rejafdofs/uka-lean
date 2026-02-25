@@ -77,8 +77,8 @@ def tractaCatenam (s : Shiori) (catenaRogationis : String) : IO String := do
       return responsum.adProtocollum
     | .error _ =>
       return Responsum.malaRogatio.adProtocollum
-  catch _ =>
-    return Responsum.errorInternus.adProtocollum
+  catch e =>
+    return s!"[FATAL in tractaCatenam] {e}"
 
 end Shiori
 
