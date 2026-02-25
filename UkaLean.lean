@@ -23,3 +23,4 @@ import UkaLean.Exporta
 import UkaLean.StatusPermanens
 import UkaLean.Syntaxis
 import UkaLean.Loop
+import UkaLean.Varia

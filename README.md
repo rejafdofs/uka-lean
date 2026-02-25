@@ -52,8 +52,8 @@ open UkaLean Sakura
 varia perpetua numerusSalutationum : Nat := 0
 
 eventum "OnBoot" fun _ => do
-  numerusSalutationum.modify (· + 1)
-  let numerus ← numerusSalutationum.get
+  numerusSalutationum.renovare (· + 1)
+  let numerus ← numerusSalutationum.obtinere
   sakura; superficies 0
   if numerus == 1 then
     loquiEtLinea "はじめましてにゃん！"
@@ -141,9 +141,9 @@ varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存�
 變數は `IO.Ref` として展開されるにゃ。處理器(tractator)の中から直接使へるにゃ:
 
 ```lean
-let numerus ← numerusSalutationum.get   -- 讀取(legere)
-numerusSalutationum.set 42               -- 設定(statuere)
-numerusSalutationum.modify (· + 1)       -- 更新(renovare)
+let numerus ← numerusSalutationum.obtinere   -- 讀取(legere)
+numerusSalutationum.statuere 42              -- 設定(statuere)
+numerusSalutationum.renovare (· + 1)         -- 更新(renovare)
 ```
 
 ---

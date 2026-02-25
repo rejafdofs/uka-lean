@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::os::windows::process::CommandExt;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
-use windows_sys::Win32::Foundation::{GlobalFree, BOOL};
+use windows_sys::Win32::Foundation::BOOL;
 use windows_sys::Win32::Globalization::{
     MultiByteToWideChar, WideCharToMultiByte, CP_ACP, CP_UTF8,
 };
@@ -182,7 +182,7 @@ fn utf8_to_ansi_bytes(bytes: &[u8]) -> Vec<u8> {
 
 // にゃ：SSP は基本的に單一スレッドで SHIORI を呼ぶので Mutex で十分にゃ
 struct Nexus {
-    filius: Child,
+    _filius: Child,
     calamus: ChildStdin, // 子プロケッスス stdin
     rivus: ChildStdout,  // 子プロケッスス stdout
 }
@@ -208,7 +208,6 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
         let ptr = GlobalLock(h) as *const u8;
         let bytes = core::slice::from_raw_parts(ptr, len as usize).to_vec();
         GlobalUnlock(h);
-        GlobalFree(h);
         bytes
     };
 
@@ -267,7 +266,7 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
 
     log_trace!("load success");
     *NEXUS.lock().unwrap() = Some(Nexus {
-        filius,
+        _filius: filius,
         calamus,
         rivus,
     });
@@ -281,9 +280,11 @@ pub unsafe extern "C" fn unload() -> BOOL {
         // ONERARE 終了命令: [2u8]
         let _ = n.calamus.write_all(&[2u8]);
         let _ = n.calamus.flush();
-        // 確実に終了させて凍結（フリーズ）を迴避するにゃん
-        let _ = n.filius.kill();
-        let _ = n.filius.wait();
+        // 待機すると SSP がタイムアウト等で強制終了（墜落）する恐れがあるため、
+        // kill せず、且つ wait もせずに、そのままパイプを閉ぢて終了するにゃ。
+        // ghost.exe はパイプから 2 を讀み取った後、自發的に變數を保存して單獨で終了するにゃん♪
+        drop(n.calamus);
+        drop(n.rivus);
     }
     log_trace!("=== unload done ===");
     1
@@ -298,7 +299,6 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
         let ptr = GlobalLock(h) as *const u8;
         let bytes = core::slice::from_raw_parts(ptr, rogatio_len).to_vec();
         GlobalUnlock(h);
-        GlobalFree(h);
         bytes
     };
 

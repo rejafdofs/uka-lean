@@ -80,7 +80,7 @@ fn main() {
         AddVectoredExceptionHandler(1, Some(exception_handler));
     }
 
-    let project_dir = std::path::PathBuf::from(r"c:\Users\a\Downloads\test\ghost\master");
+    let project_dir = std::path::PathBuf::from(r"d:\anything\ukagaka\ghost\test\ghost\master");
     let dll_path = project_dir.join("shiori.dll");
 
     eprintln!("[1] ghost.dll via: {}", dll_path.display());
@@ -183,8 +183,9 @@ fn main() {
 
     // unload を呼ぶにゃ
     eprintln!("[11] calling unload...");
+    let start = std::time::Instant::now();
     unsafe {
         f_unload();
     }
-    eprintln!("[12] done!");
+    eprintln!("[12] done! took: {:?}", start.elapsed());
 }
