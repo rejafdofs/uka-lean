@@ -5,6 +5,13 @@ import UkaLean.Exporta
 
 namespace UkaLean
 
+/-- ログ出力用（depurgatio）關數にゃん -/
+def logTrace (msg : String) : IO Unit := do
+  let domus := "C:\\Users\\a\\ghost_lean_trace.txt"
+  let out ← IO.FS.Handle.mk domus IO.FS.Mode.append
+  out.putStrLn msg
+  out.flush
+
 /-- リトルエンディアン 4バイトを發信（出力）するにゃん -/
 def egressusU32 (stdout : IO.FS.Stream) (n : UInt32) : IO Unit := do
   let array : ByteArray := ⟨#[
@@ -24,7 +31,8 @@ def ingressusU32 (stdin : IO.FS.Stream) : IO UInt32 := do
   let b1 := b[1]!.toUInt32
   let b2 := b[2]!.toUInt32
   let b3 := b[3]!.toUInt32
-  return b0 ||| (b1 <<< 8) ||| (b2 <<< 16) ||| (b3 <<< 24)
+  let n := b0 ||| (b1 <<< 8) ||| (b2 <<< 16) ||| (b3 <<< 24)
+  return n
 
 /-- 要求を讀取つて應答を返す中繼循環（loop）にゃん。
     Rust 側の proxy32_host.exe の代はりを完全に機能させるにゃ！
@@ -45,9 +53,12 @@ partial def loopPrincipalis : IO Unit := do
   if m == 1 then
     -- LOAD 命令にゃん: [1u8] [4bytes:len] [bytes:path] -> [1u8] を返すにゃ
     let viaLen ← ingressusU32 stdin
-    if viaLen == 0 then return ()
+    if viaLen == 0 then
+      logTrace "[FATAL] viaLen is 0"
+      return ()
     let viaBytes ← stdin.read viaLen.toUSize
     let viaStr := String.fromUTF8! viaBytes
+    logTrace s!"[LOAD] via={viaStr}, len={viaLen}"
     -- UkaLean 全域側の Load 處理を喚ぶにゃ
     let success ← UkaLean.exportaLoad viaStr
     stdout.write ⟨#[success.toUInt8]⟩
@@ -56,19 +67,28 @@ partial def loopPrincipalis : IO Unit := do
 
   else if m == 2 then
     -- UNLOAD 命令にゃん: [2u8] -> 拔けるにゃ
+    logTrace "[UNLOAD] called"
     let _ ← UkaLean.exportaUnload
+    logTrace "[UNLOAD] done"
     return ()
 
   else if m == 3 then
     -- REQUEST 命令にゃん: [3u8] [4bytes:len] [bytes:req] -> [4bytes:len] [bytes:res] を返すにゃ
     let reqLen ← ingressusU32 stdin
-    if reqLen == 0 then return ()
+    if reqLen == 0 then
+      logTrace "[FATAL] reqLen is 0"
+      return ()
+    logTrace s!"[REQUEST] reqLen={reqLen}"
     let reqBytes ← stdin.read reqLen.toUSize
+    if reqBytes.size.toUInt32 < reqLen then
+      logTrace s!"[FATAL] short read! expected {reqLen}, got {reqBytes.size}"
+
     let reqStr := String.fromUTF8! reqBytes
 
     -- UkaLean 全域側の Request 處理を喚ぶにゃん♪
     let resStr ← UkaLean.exportaRequest reqStr
     let resBytes := resStr.toUTF8
+    logTrace s!"[REQUEST] DONE, resLen={resBytes.size}"
 
     egressusU32 stdout resBytes.size.toUInt32
     stdout.write resBytes
@@ -77,6 +97,7 @@ partial def loopPrincipalis : IO Unit := do
 
   else
     -- 未知のコマンド、ひとまづ無視して繼續するにゃん
+    logTrace s!"[UNKNOWN] command: {m}"
     loopPrincipalis
 
 end UkaLean
