@@ -7,13 +7,13 @@ namespace UkaLean
 
 /-- リトルエンディアン 4バイトを發信（出力）するにゃん -/
 def egressusU32 (stdout : IO.FS.Stream) (n : UInt32) : IO Unit := do
-  let array := #[
+  let array : ByteArray := ⟨#[
     (n &&& 0xFF).toUInt8,
     ((n >>> 8) &&& 0xFF).toUInt8,
     ((n >>> 16) &&& 0xFF).toUInt8,
     ((n >>> 24) &&& 0xFF).toUInt8
-  ]
-  stdout.write array.toByteArray
+  ]⟩
+  stdout.write array
 
 /-- リトルエンディアン 4バイトを讀信するにゃん。
     讀めなかつた場合は 0 を返すにゃ -/
@@ -31,7 +31,7 @@ def ingressusU32 (stdin : IO.FS.Stream) : IO UInt32 := do
     - コマンド 1: LOAD (路徑讀取＋初期化後 [1] を返す)
     - コマンド 2: UNLOAD (終了後 [1] を返してループ拔ける)
     - コマンド 3: REQUEST (要求讀取＋長さと應答を返す) -/
-partial def loopPrincipalis : IO Unit := do
+partial unsafe def loopPrincipalis : IO Unit := do
   let stdin ← IO.getStdin
   let stdout ← IO.getStdout
 
@@ -46,10 +46,10 @@ partial def loopPrincipalis : IO Unit := do
     let viaLen ← ingressusU32 stdin
     if viaLen == 0 then return ()
     let viaBytes ← stdin.read viaLen.toUSize
-    let viaStr := String.fromUTF8Unchecked viaBytes
+    let viaStr := String.fromUTF8! viaBytes
     -- UkaLean 全域側の Load 處理を喚ぶにゃ
     let success ← UkaLean.exportaLoad viaStr
-    stdout.write #[success.toUInt8].toByteArray
+    stdout.write ⟨#[success.toUInt8]⟩
     stdout.flush
     loopPrincipalis
 
@@ -63,7 +63,7 @@ partial def loopPrincipalis : IO Unit := do
     let reqLen ← ingressusU32 stdin
     if reqLen == 0 then return ()
     let reqBytes ← stdin.read reqLen.toUSize
-    let reqStr := String.fromUTF8Unchecked reqBytes
+    let reqStr := String.fromUTF8! reqBytes
 
     -- UkaLean 全域側の Request 處理を喚ぶにゃん♪
     let resStr ← UkaLean.exportaRequest reqStr
