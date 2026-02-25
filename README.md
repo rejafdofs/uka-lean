@@ -40,10 +40,12 @@ name = "ghost"
 root = "Main"
 ```
 
-### ③ `Ghost.lean` を書くにゃ
+### ③ `Main.lean` を書くにゃ
+
+`ghost.exe` のエントリポイント（主關數）として、事象と `construe`、そして `main` を記述するにゃ:
 
 ```lean
--- Ghost.lean
+-- Main.lean
 import UkaLean
 open UkaLean Sakura
 
@@ -62,24 +64,13 @@ eventum "OnClose" fun _ => do
   finis
 
 construe
-```
 
-### ④ `Main.lean` を書くにゃ
-
-`ghost.exe` のエントリポイント（主關數）として以下を記述するにゃ:
-
-```lean
--- Main.lean
-import UkaLean.Loop
-import Ghost
-
-@[export main]
-def principalis : IO Unit := UkaLean.loopPrincipalis
+def main : IO Unit := UkaLean.loopPrincipalis
 ```
 
 ### ⑤ 構築して `ghost.exe` を作るにゃ
 
-以下を **ゴーストのプロジェクト 루트**（`lakefile.toml` がある場所）で實行するにゃ。
+以下を **ゴーストのプロヱクトゥム(proiectum)ルート**（`lakefile.toml` がある場所）で實行するにゃ。
 
 ```bash
 lake update
@@ -90,10 +81,13 @@ lake build ghost
 
 ### ⑥ `shiori.dll` (代理) を入手して配置するにゃ
 
-最新の `shiori.dll` を uka-lean の Release からダウンロードし、構築した `ghost.exe` と同じ場所に置くことで、SSP から讀み込めるやうになるにゃ♪
+最新の `shiori.dll` を uka-lean の Release から取得(descensus)し、構築した `ghost.exe` と同じ場所に置くことで、SSP から讀み込めるやうになるにゃ♪
 
 - `shiori.dll` (SSP から讀まれる 32-bit Rust 製代理)
 - `ghost.exe` (Lean 製の眞の主人公)
+
+> [!TIP]
+> `libLake_shared.dll` や `libleanshared.dll` などの動的リンクビブリオテーカ(bibliotheca)は、スクリプトゥム(scriptum)實行(`lean --run`)時にのみ使はれ、`lake build` コマンドで生成された轉換濟の `ghost.exe` 實行體には**不要**にゃん！配布時は純粹に上記の2つのファスキクルス(fasciculus)だけで完璧に動くでござる。
 
 ---
 
@@ -356,7 +350,7 @@ construe
 
 ---
 
-## 低水準 API（マクロを使はない場合）
+## 低水準 API（構文擴張を使はない場合）
 
 `varia`/`eventum`/`construe` を使はずに直接書くこともできるにゃ:
 
@@ -458,7 +452,7 @@ uka.lean/
 │   ├── Exporta.lean            ← 內部用實行關數群
 │   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
 │   ├── Loop.lean               ← パイプ直結通信用の小循環（メインループ）
-│   └── Macro.lean              ← varia / eventum / construe DSL マクロ
+│   └── Syntaxis.lean           ← varia / eventum / construe DSL 構文擴張
 └── Main.lean                   ← 模擬試驗用實行體
 ```
 

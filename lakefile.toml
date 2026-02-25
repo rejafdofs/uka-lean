@@ -24,10 +24,5 @@ globs = [
   "UkaLean.Nuculum",
   "UkaLean.Exporta",
   "UkaLean.StatusPermanens",
-  "UkaLean.Macro",
+  "UkaLean.Syntaxis",
 ]
-
-# 試驗用實行體にゃん（ライブラリ利用者には不要にゃ）
-[[lean_exe]]
-name = "shiori-probatio"
-root = "Main"

@@ -1,6 +1,6 @@
--- UkaLean.Macro
--- ゴーストDSLマクロにゃん♪
--- varia / eventum / construe の3つのマクロを提供するにゃ
+-- UkaLean.Syntaxis
+-- ゴーストDSL構文擴張にゃん♪
+-- varia / eventum / construe の3つの構文擴張を提供するにゃ
 -- 環境拡張 GhostAccumulatio に variae（變數宣言）と eventa（事象宣言）を累積するにゃ
 
 import Lean
@@ -51,7 +51,7 @@ initialize ghostAccumulatioExt : EnvExtension GhostAccumulatio ←
   registerEnvExtension (pure {})
 
 -- ═══════════════════════════════════════════════════
--- varia マクロにゃん
+-- varia 構文擴張にゃん
 -- ═══════════════════════════════════════════════════
 
 /-- 永続化變數を宣言するにゃん♪
@@ -79,7 +79,7 @@ elab "varia" "temporaria" n:ident ":" t:term ":=" v:term : command => do
           nomen := n.getId, typusSyntax := t, permanet := false } }
 
 -- ═══════════════════════════════════════════════════
--- eventum マクロにゃん
+-- eventum 構文擴張にゃん
 -- ═══════════════════════════════════════════════════
 
 /-- 事象處理器を宣言するにゃん♪
@@ -102,8 +102,10 @@ elab "eventum" nomenEventi:str body:term : command => do
           nomen, tractatorNomen := nomenPlenumTractatorum } }
 
 -- ═══════════════════════════════════════════════════
--- construe マクロにゃん
+-- construe 構文擴張にゃん
 -- ═══════════════════════════════════════════════════
+
+set_option hygiene false
 
 /-- ゴーストを組み立てて SSP に登錄するにゃん♪
     varia と eventum の宣言を讀み取り、栞を構築・登錄するにゃ。
@@ -130,7 +132,6 @@ elab "construe" : command => do
     -- 永続化にゃし: シンプレクス(simplex)にゃ registraShiori を使ふにゃ
     elabCommand (← `(
       initialize (UkaLean.registraShiori [$pariaTractatorum,*])
-      def main : IO Unit := UkaLean.loopPrincipalis
     ))
   else
     -- 永続化あり: 型タグ付き讀込・書出フックを生成するにゃ♪
@@ -184,8 +185,6 @@ elab "construe" : command => do
           let _via := _domus ++ "/ghost_status.bin"
           let _paria ← UkaLean.executareScripturam $terminusServandi
           UkaLean.scribeMappam _via _paria)))
-
-      def main : IO Unit := UkaLean.loopPrincipalis
     ))
 
 end UkaLean
