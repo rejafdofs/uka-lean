@@ -5,12 +5,13 @@ import UkaLean.Exporta
 
 namespace UkaLean
 
-/-- ログ出力用（depurgatio）關數にゃん -/
-def logTrace (msg : String) : IO Unit := do
-  let domus := "C:\\Users\\a\\ghost_lean_trace.txt"
-  let out ← IO.FS.Handle.mk domus IO.FS.Mode.append
-  out.putStrLn msg
-  out.flush
+/-- ログ出力用（depurgatio）關數にゃん。現在は無效化（inactivatus）してゐるにゃ -/
+def logTrace (_msg : String) : IO Unit := do
+  return ()
+  -- let domus := "C:\\Users\\a\\ghost_lean_trace.txt"
+  -- let out ← IO.FS.Handle.mk domus IO.FS.Mode.append
+  -- out.putStrLn _msg
+  -- out.flush
 
 /-- リトルエンディアン 4バイトを發信（出力）するにゃん -/
 def egressusU32 (stdout : IO.FS.Stream) (n : UInt32) : IO Unit := do
