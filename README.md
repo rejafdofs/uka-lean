@@ -1,20 +1,20 @@
-# UkaLean — Lean 4 製 SHIORI/3.0 栞ビブリオテーカ
+# UkaLean — Lean 4 製 SHIORI/3.0 栞ビブリオテーカ(bibliotheca)
 
-Lean 4 でうかがか(Ukagaka)ゴーストの栞を書くためのビブリオテーカにゃ。
-`do` 記法で型安全に SakuraScript を組み立てられるにゃん♪
+Lean 4 でうかがか(Ukagaka)の栞(shiori)を書くためのビブリオテーカにゃ。
+`do` 記法で型安全に SakuraScriptum を組み立てられるにゃん♪
 
 識別子はラテン語で統一されてゐるにゃ。
 
 ---
 
-## クイックスタート
+## クイックスタート (Inceptum Celer)
 
-### 前提
+### 前提 (Praemissa)
 
 - [Lean 4 / elan](https://leanprover.github.io/lean4/doc/setup.html)（Lake 附属にゃ）
-- MinGW (gcc) — Windows で DLL を作るのに必要にゃ
+- Windows 環境（代理の動的連結ビブリオテーカ `shiori.dll` を動かすのに必要にゃ）
 
-### ① 新規 Lake プロヱクトゥムを作るにゃ
+### ① 新規 Lake プロヱクトゥム(proiectum)を作るにゃ
 
 ```bash
 lake new my-ghost
@@ -42,7 +42,7 @@ root = "Main"
 
 ### ③ `Main.lean` を書くにゃ
 
-`ghost.exe` のエントリポイント（主關數）として、事象と `construe`、そして `main` を記述するにゃ:
+`ghost.exe` の實行開始點(punctum initii)として、事象(eventum)と `construe`、そして `main` を記述するにゃ:
 
 ```lean
 -- Main.lean
@@ -55,12 +55,18 @@ eventum "OnBoot" fun _ => do
   numerusSalutationum.modify (· + 1)
   let numerus ← numerusSalutationum.get
   sakura; superficies 0
-  loqui s!"起動 {numerus} 囘目にゃん♪"
+  if numerus == 1 then
+    loquiEtLinea "はじめましてにゃん！"
+    mora 800; linea
+    kero; superficies 10
+    loquiEtLinea "よろしくお願ひします。"
+  else
+    loqui s!"起動 {numerus} 囘目にゃん♪"
   finis
 
 eventum "OnClose" fun _ => do
-  sakura; superficies 0
-  loqui "またにゃん！"
+  sakura; superficies 3
+  loqui "またにゃー！"
   finis
 
 construe
@@ -68,61 +74,85 @@ construe
 def main : IO Unit := UkaLean.loopPrincipalis
 ```
 
-### ⑤ 構築して `ghost.exe` を作るにゃ
+### ④ 構築(aedificatio)して實行體(exsecutabile) `ghost.exe` を作るにゃ
 
-以下を **ゴーストのプロヱクトゥム(proiectum)ルート**（`lakefile.toml` がある場所）で實行するにゃ。
+以下をゴーストのプロヱクトゥム・ルート（`lakefile.toml` がある場所）で實行するにゃ。
 
 ```bash
 lake update
 lake build ghost
 ```
 
-完成した `.lake/build/bin/ghost.exe` をコピーするにゃ！
+完成した `.lake/build/bin/ghost.exe` の寫し(copia)を作成して次に進むにゃ！
 
-### ⑥ `shiori.dll` を入手して配置するにゃ
+### ⑤ 代理(procurator) `shiori.dll` を入手して配置するにゃ
 
 最新の `shiori.dll` を uka-lean の Release から取得(descensus)し、構築した `ghost.exe` と同じ場所に置くことで、SSP から讀み込めるやうになるにゃ♪
 
+#### 配置場所の例
 
+```
+SSP/
+└── ghost/
+    └── (ゴースト名)/
+        ├── descript.txt
+        ├── shell/
+        │   └── master/               ← 外觀畫像
+        └── ghost/
+            └── master/
+                ├── shiori.dll        ← ★ SSP から直接讀まれて本體に要求(rogatio)を渡す代理にゃ
+                ├── ghost.exe         ← ★ 本體にゃ（Lean 構築物）
+                └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
+```
+
+---
+
+## 代理 (Procurator) の仕組
+
+Lean 4 は 64-bit の實行體に轉換されるにゃ。一方、SSP は 32-bit アッパラートゥス(apparatus)にゃので、そのまゝでは讀み込めにゃいにゃん…。
+そのため、32-bit の動的連結ビブリオテーカとして振る舞ふ **代理 (procurator)** が必要になるにゃ。
+
+そこで、32-bit の SSP と 64-bit の Lean 實行體を橋渡しする自前の代理ファスキクルス(fasciculus) `shiori.dll` （Rust製）を準備したにゃん♪
+`shiori.dll` が SSP と通信し、そこから `ghost.exe` (Lean 製の 64-bit プロケッスス) を呼び出して標準入出力でパイプ(fistula)直結通信する仕組にゃ！これで面倒な C 言語による中繼や煩雜な構築作業の苦痛はもう存在しにゃいにゃん♪
 
 ---
 
 ## `Ghost.lean` の書き方
 
-### `varia` — 全域變數の宣言
+### `varia` — 全域變數(variabilis)の宣言
 
 ```lean
 varia perpetua   名前 : 型 := 初期値   -- 終了時に保存・起動時に復元するにゃ
 varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存しにゃい）
 ```
 
-| | `perpetua` | `temporaria` |
+| 種類 | `perpetua` | `temporaria` |
 |---|---|---|
 | 保存先 | `{ghost}/ghost_status.bin` | なし |
 | 起動時 | ファスキクルスから復元 | 初期値から始まる |
 | 用途 | 起動囘數・設定・フラグ等 | 今囘だけ使ふ情報 |
 
-使へる型: `Nat` `Int` `Bool` `String` `Float` 等（`StatusPermanens` クラスのインスタンスにゃ）
+使へる型: `Nat` `Int` `Bool` `String` `Float` 等（`StatusPermanens` クラッシス(classis)の實体(instantia)にゃ）
 
 **型安全な永続化にゃ♪**
 保存時に型を識別する `typusTag`（文字列）も一緒に保存するにゃ。
-ゴーストの更新で變數の型が變はっても、タグが不一致なら安全に讀み飛ばされるにゃん。
+更新で變數の型が變はっても、タグが不一致なら安全に讀み飛ばされるにゃん。
 
-變數は `IO.Ref` として展開されるにゃ。處理器の中から直接使へるにゃ:
+變數は `IO.Ref` として展開されるにゃ。處理器(tractator)の中から直接使へるにゃ:
 
 ```lean
-let numerus ← numerusSalutationum.get   -- 讀む
-numerusSalutationum.set 42               -- 書く
-numerusSalutationum.modify (· + 1)       -- 更新する
+let numerus ← numerusSalutationum.get   -- 讀取(legere)
+numerusSalutationum.set 42               -- 設定(statuere)
+numerusSalutationum.modify (· + 1)       -- 更新(renovare)
 ```
 
 ---
 
-### `eventum` — 事象處理器の宣言
+### `eventum` — 事象處理器(tractator)の宣言
 
 ```lean
 eventum "事象名" fun rogatio => do
-  -- rogatio : Rogatio（SSP からの要求情報にゃ）
+  -- rogatio : Rogatio（SSP からの要求(rogatio)情報にゃ）
   ...
   finis   -- ★ 末尾に必ず書くにゃ
 ```
@@ -134,7 +164,7 @@ eventum "事象名" fun rogatio => do
 | `rogatio.nomen` | `String` | 事象名（"OnBoot" 等）|
 | `rogatio.referentiam 0` | `Option String` | Reference0 |
 | `rogatio.referentiam 1` | `Option String` | Reference1 |
-| `rogatio.mittens` | `Option String` | Sender 頭部 |
+| `rogatio.mittens` | `Option String` | Sender 頭部(caput) |
 | `rogatio.caput "clavis"` | `Option String` | 任意の頭部 |
 
 使用例:
@@ -152,26 +182,26 @@ eventum "OnMouseDoubleClick" fun rogatio => do
 
 ### `construe` — 栞を組み立てよ
 
-ファスキクルスの末尾に一度書くだけにゃ:
+主ファスキクルス(fasciculus)の末尾に一度書くだけにゃ:
 
 ```lean
 construe
 ```
 
 - `eventum` で宣言した全ての處理器を自動收集して登錄するにゃ
-- `perpetua` 變數がある場合は讀込・書出フックも自動生成されるにゃん♪
+- `perpetua` 變數がある場合は讀込・書出の呼戻(revocatio)も自動生成されるにゃん♪
 - 型タグ付きで保存するので、型が變はっても安全にゃ
-- 處理器内で例外が發生した場合は 500 Internal Server Error を返すにゃ
+- 處理器内で例外(exceptio)が發生した場合は 500 Internal Server Error (內部エッロル) を返すにゃ
 
 ---
 
-## SakuraScript 命令一覽
+## SakuraScriptum 命令一覽 (Mandata)
 
 `open UkaLean Sakura` してから使ふにゃ。
 
-### 人格・表情
+### 人格・表情 (Persona et Superficies)
 
-| 命令 | SakuraScript | 意味 |
+| 命令 | SakuraScriptum | 意味 |
 |---|---|---|
 | `sakura` | `\h` | 主人格（さくら側）に切り替へ |
 | `kero` | `\u` | 副人格（うにゅう側）に切り替へ |
@@ -179,9 +209,9 @@ construe
 | `superficies n` | `\s[n]` | 表情を n 番にする |
 | `animatio n` | `\i[n]` | 動畫 n 番を再生 |
 
-### 文字表示
+### 文字表示 (Textus)
 
-| 命令 | SakuraScript | 意味 |
+| 命令 | SakuraScriptum | 意味 |
 |---|---|---|
 | `loqui "文字列"` | (特殊文字自動遁走) | 文字を表示 |
 | `loquiEtLinea "文字列"` | 同上 + `\n` | 表示して改行 |
@@ -189,11 +219,11 @@ construe
 | `dimidiaLinea` | `\n[half]` | 半改行 |
 | `purga` | `\c` | 吹き出しを淸掃 |
 | `adscribe` | `\C` | 前の吹き出しに追記 |
-| `finis` | `\e` | **スクリプト終了（必須）** |
+| `finis` | `\e` | **スクリプトゥム終了（必須）** |
 
-### 待機・テンポ
+### 待機・テンポ (Mora)
 
-| 命令 | SakuraScript | 意味 |
+| 命令 | SakuraScriptum | 意味 |
 |---|---|---|
 | `mora ms` | `\_w[ms]` | ms ミリ秒待機 |
 | `moraCeler n` | `\w[n]` | 50ms × n 待機 |
@@ -201,7 +231,7 @@ construe
 | `expecta` | `\x` | 打鍵待ち（淸掃あり）|
 | `expectaSine` | `\x[noclear]` | 打鍵待ち（淸掃なし）|
 
-### 選擇肢
+### 選擇肢 (Optio)
 
 | 命令 | 意味 |
 |---|---|
@@ -209,19 +239,9 @@ construe
 | `optioEventum "表示名" "EventName" ["r0", "r1"]` | Reference 附き選擇肢 |
 | `ancora "signum"` … `fineAncora` | 錨（クリック可能な文字列）|
 
-```lean
-eventum "OnBoot" fun _ => do
-  sakura; superficies 0
-  loquiEtLinea "何をするにゃ？"
-  optio "撫でる"   "OnNaderu"
-  linea
-  optio "さよなら" "OnClose"
-  finis
-```
+### 書體 (Stilus)
 
-### 書體
-
-| 命令 | SakuraScript | 意味 |
+| 命令 | SakuraScriptum | 意味 |
 |---|---|---|
 | `audax true` | `\f[bold,true]` | 太字 ON |
 | `obliquus true` | `\f[italic,true]` | 斜體 ON |
@@ -229,18 +249,18 @@ eventum "OnBoot" fun _ => do
 | `deletura true` | `\f[strike,true]` | 取消線 ON |
 | `color r g b` | `\f[color,r,g,b]` | 文字色（0〜255）|
 | `altitudoLitterarum n` | `\f[height,n]` | 文字の大きさ |
-| `formaPraefinita` | `\f[default]` | 書式を既定に戾す |
+| `formaPraefinita` | `\f[default]` | 書式を既定(praefinitum)に戾す |
 
-### その他
+### その他 (Ceteri)
 
-| 命令 | SakuraScript | 意味 |
+| 命令 | SakuraScriptum | 意味 |
 |---|---|---|
 | `sonus "via"` | `\_v[via]` | 音聲を再生 |
 | `expectaSonum` | `\_V` | 音聲終了を待つ |
 | `excita "Event"` | `\![raise,Event]` | 事象を發生させる |
 | `exitus` | `\-` | ゴーストを終了させる |
 | `aperi "nexus"` | `\j[nexus]` | URL を開く |
-| `crudus "signum"` | (そのまま出力) | 生の SakuraScript を直接發出 |
+| `crudus "signum"` | (そのまま出力) | 生の SakuraScriptum を直接發出 |
 
 便利な組合せ:
 
@@ -266,96 +286,16 @@ eventum "OnBoot" fun _ => do
 
 ---
 
-## 64-bit DLL の讀込（代理・Proxy の利用）
+## 永続化ファスキクルスの形式 (Forma Datorum Permanens)
 
-Lean 4 は 64-bit 向けのバイナリしか出力できにゃいにゃ。一方、SSP は 32-bit アッパラートゥス(apparatus)にゃので、そのまゝでは變換した DLL を讀み込めにゃいにゃん…。
-そのため、32-bit DLL として振る舞ふ **代理（proxy）** が必要になるにゃ。
-
-そこで、32-bit の SSP と 64-bit の Lean 實体を橋渡しする自前の代理(`shiori.dll`)を準備したにゃん♪
-`shiori.dll` が SSP と通信し、そこから `ghost.exe` (Lean 製の 64-bit プロケッスス) を呼び出して標準入出力でパイプ通信（直結）する仕組にゃ！C 言語レイヤーによる中繼や DLL ビルドの苦痛はもう存在しにゃいのでござる！
-
----
-
-## DLL 配置場所
-
-```
-SSP/
-└── ghost/
-    └── (ゴースト名)/
-        ├── descript.txt
-        ├── shell/
-        │   └── master/               ← シェル畫像
-        └── ghost/
-            └── master/
-                ├── shiori.dll        ← ★ SSP から直接讀まれて本體にリクエストを渡にゃ
-                ├── ghost.exe         ← ★ 本體にゃ
-                └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
-```
-
----
-
-## 完全なエクセンプルム（永続化・分岐・選擇肢あり）
-
-```lean
-import UkaLean
-open UkaLean Sakura
-
-varia perpetua  numerusSalutationum : Nat  := 0
-varia perpetua  dilectus            : Bool := false
-varia temporaria numerusColloquiorum : Nat  := 0   -- 今囘の起動中だけにゃ
-
-eventum "OnBoot" fun _ => do
-  numerusSalutationum.modify (· + 1)
-  let numerus ← numerusSalutationum.get
-  sakura; superficies 0
-  if numerus == 1 then
-    loquiEtLinea "はじめましてにゃん！"
-    mora 800; linea
-    kero; superficies 10
-    loquiEtLinea "よろしくお願ひします。"
-  else
-    loquiEtLinea s!"{numerus} 囘目の起動にゃ♪"
-  finis
-
-eventum "OnClose" fun _ => do
-  sakura; superficies 3
-  loquiEtLinea "またにゃー！"
-  mora 400; linea
-  kero; superficies 14
-  loquiEtLinea "お疲れ樣でした。"
-  finis
-
-eventum "OnMouseDoubleClick" fun rogatio => do
-  numerusColloquiorum.modify (· + 1)
-  match rogatio.referentiam 4 with
-  | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ？嬉しいにゃん♪"
-  | some "Face" => sakura; superficies 9; loqui "にゃっ！？ 顏は恥づかしいにゃ…"
-  | _           => sakura; superficies 0; loqui "なでなでにゃ"
-  finis
-
-eventum "OnMinuteChange" fun rogatio => do
-  match rogatio.referentiam 0, rogatio.referentiam 1 with
-  | some hora, some "00" =>
-    sakura; superficies 0
-    loquiEtLinea s!"{hora}時ちょうどにゃん♪"
-    finis
-  | _, _ => finis   -- 毎分は何もしにゃい
-
-construe
-def main : IO Unit := UkaLean.loopPrincipalis
-```
-
-
-## 永続化ファスキクルスの形式
-
-`{ghost}/ghost_status.bin` にバイナリで保存されるにゃ（v2 形式）。
+`{ghost}/ghost_status.bin` に二進體(binarius)で保存されるにゃ（v2 形式）。
 
 - `perpetua` 變數のみ保存・復元されるにゃ（`temporaria` は保存されにゃい）
-- ファスキクルスがない場合は `:= 初期値` が使はれるにゃ
-- 各エントリに `typusTag`（型の文字列識別子）が附いてゐるにゃ
+- ファスキクルスが搜せにゃい場合は `:= 初期値` が使はれるにゃ
+- 各定刻には `typusTag`（型の文字列識別子）が附いてゐるにゃ
   - 型が變はった變數は安全に讀み飛ばされるにゃん♪
 
-### 使へる型（`StatusPermanens` インスタンスあり）
+### 使へる型（`StatusPermanens` クラッシス(classis)の實体(instantia)あり）
 
 | 型 | `typusTag` | エンコード形式 |
 |---|---|---|
@@ -372,17 +312,17 @@ def main : IO Unit := UkaLean.loopPrincipalis
 | `Array α` | `"Array(α)"` | `List α` と同じ |
 | `α × β` | `"Prod(α,β)"` | フィールドの連結 |
 
-### 自作構造體の永続化
+### 自作構造體(structura)の永続化
 
-`encodeField`/`decodeField` を使へば任意の構造體をインスタンスにできるにゃん♪
+`encodeField` と `decodeField` を使へば任意の構造體を實体(instantia)へと變換できるにゃん♪
 
 ```lean
 import UkaLean
 open UkaLean
 
 structure DatorumLusoris where
-  gradus : Nat     -- 
-  nomen  : String
+  gradus : Nat     -- 階級
+  nomen  : String  -- 名前
   puncta : Float   -- 點數
 
 instance : StatusPermanens DatorumLusoris where
@@ -403,30 +343,29 @@ varia perpetua lusor : DatorumLusoris := { gradus := 1, nomen := "シロ", punct
 
 ---
 
-## ファスキクルス構成
+## ファスキクルス構成 (Structura Fasciculorum)
 
 ```
 uka.lean/
-├── lean-toolchain              ← leanprover/lean4:v4.28.0
 ├── lakefile.toml
-├── UkaLean.lean                ← 根モドゥルス（全體を再輸出）
+├── UkaLean.lean                ← 根モドゥルス(modulus)（全體を再輸出）
 ├── UkaLean/
-│   ├── Protocollum.lean        ← SHIORI/3.0 共通型・定数
-│   ├── SakuraScriptum.lean     ← SakuraScript モナド DSL
+│   ├── Protocollum.lean        ← SHIORI/3.0 共通型・定數
+│   ├── SakuraScriptum.lean     ← SakuraScriptum モナド DSL
 │   ├── Rogatio.lean            ← SHIORI/3.0 要求構文解析器
 │   ├── Responsum.lean          ← SHIORI/3.0 應答構築器
 │   ├── Nuculum.lean            ← 核心骨格（Shiori 型・事象經路設定）
 │   ├── Exporta.lean            ← 內部用實行關數群
-│   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
-│   ├── Loop.lean               ← パイプ直結通信用の小循環（メインループ）
-│   └── Syntaxis.lean           ← varia / eventum / construe DSL 構文擴張
-└── Main.lean                   ← 模擬試驗用實行體
+│   ├── StatusPermanens.lean    ← 永続化型クラッシス(classis)・補助關數・逆關數定理
+│   ├── Loop.lean               ← パイプ直結通信用の小循環(circulus minor)
+│   ├── Syntaxis.lean           ← varia / eventum / construe DSL 構文擴張
+│   └── Exemplum.lean           ← 全事象(eventum)の網羅的實裝例
+├── procurator/                 ← ★ 代理(procurator)の動的連結ビブリオテーカ( Rust 製 )
 ```
 
 ---
 
-## 仕樣參照
+## 仕樣參照 (Referentia)
 
-- [UKADOC Project](https://ssp.shillest.net/ukadoc/manual/index.html) — SHIORI/3.0 仕樣・SakuraScript 仕樣
-- [SSP](http://ssp.shillest.net/) — ベースウェア公式
-
+- [UKADOC Project](https://ssp.shillest.net/ukadoc/manual/index.html) — SHIORI/3.0 仕樣・SakuraScriptum 仕樣
+- [SSP](http://ssp.shillest.net/) — 基底(basis)ウェア公式
