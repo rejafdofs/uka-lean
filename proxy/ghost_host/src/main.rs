@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
 
-use windows_sys::Win32::Foundation::{GlobalFree, HMODULE};
+use windows_sys::Win32::Foundation::GlobalFree;
 use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW, SetDllDirectoryW};
 use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_FIXED};
 
