@@ -22,7 +22,7 @@ macro_rules! log_trace {
         if let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open("ghost_host_trace.txt")
+            .open("C:\\Users\\a\\ghost_host_trace.txt")
         {
             use std::io::Write;
             let _ = writeln!(file, $($arg)*);

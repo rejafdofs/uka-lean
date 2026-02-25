@@ -1,11 +1,21 @@
 /*! SSP を模して ghost.dll を直接讀み込み、SHIORI 通信をプロバーティオーするにゃん♪ */
 
 use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
+use std::os::windows::ffi::OsStringExt;
 
-use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW, SetDllDirectoryW};
-use windows_sys::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_FIXED};
+use windows_sys::Win32::Foundation::EXCEPTION_ACCESS_VIOLATION;
+use windows_sys::Win32::System::Diagnostics::Debug::{
+    AddVectoredExceptionHandler, EXCEPTION_POINTERS,
+};
+use windows_sys::Win32::System::LibraryLoader::{
+    GetModuleFileNameW, GetProcAddress, LoadLibraryW, SetDllDirectoryW,
+};
+use windows_sys::Win32::System::Memory::{
+    GlobalAlloc, GlobalLock, GlobalUnlock, VirtualQuery, GMEM_FIXED, MEMORY_BASIC_INFORMATION,
+};
 
 type HGLOBAL = *mut core::ffi::c_void;
 type FnLoad = unsafe extern "C" fn(HGLOBAL, i32) -> i32;
@@ -26,22 +36,39 @@ unsafe fn bytes_to_hglobal(data: &[u8]) -> HGLOBAL {
     h
 }
 
-use windows_sys::Win32::Foundation::EXCEPTION_ACCESS_VIOLATION;
-use windows_sys::Win32::System::Diagnostics::Debug::{
-    AddVectoredExceptionHandler, EXCEPTION_POINTERS,
-};
-
 unsafe extern "system" fn exception_handler(exc_info: *mut EXCEPTION_POINTERS) -> i32 {
     if !exc_info.is_null() {
         let record = (*exc_info).ExceptionRecord;
         if !record.is_null() {
             let code = (*record).ExceptionCode;
+            let addr = (*record).ExceptionAddress;
             eprintln!("[FATAL] Windows Exception Caught! Code: {:#X}", code);
             if code == EXCEPTION_ACCESS_VIOLATION {
-                eprintln!(
-                    "[FATAL] Access Violation at address {:#X}",
-                    (*record).ExceptionAddress as usize
-                );
+                eprintln!("[FATAL] Access Violation at address {:#X}", addr as usize);
+
+                let mut mem_info: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
+                if VirtualQuery(
+                    addr,
+                    &mut mem_info,
+                    std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+                ) != 0
+                {
+                    let mut path_buf = [0u16; 1024];
+                    let len = GetModuleFileNameW(
+                        mem_info.AllocationBase as _,
+                        path_buf.as_mut_ptr(),
+                        path_buf.len() as u32,
+                    );
+                    if len > 0 {
+                        let path = OsString::from_wide(&path_buf[..len as usize]);
+                        eprintln!("[FATAL] Crashing module: {}", path.to_string_lossy());
+                    } else {
+                        eprintln!(
+                            "[FATAL] Crashing module: (unknown, err={})",
+                            windows_sys::Win32::Foundation::GetLastError()
+                        );
+                    }
+                }
             }
         }
     }
@@ -53,8 +80,8 @@ fn main() {
         AddVectoredExceptionHandler(1, Some(exception_handler));
     }
 
-    let project_dir = std::path::PathBuf::from(r"c:\Users\a\Documents\uka.lean");
-    let dll_path = project_dir.join("ghost.dll");
+    let project_dir = std::path::PathBuf::from(r"c:\Users\a\Downloads\test\ghost\master");
+    let dll_path = project_dir.join("shiori.dll");
 
     eprintln!("[1] ghost.dll via: {}", dll_path.display());
 
@@ -98,7 +125,10 @@ fn main() {
             return;
         }
     };
-    eprintln!("[4] load/unload/request resolved");
+    eprintln!(
+        "[4] resolved: hlib={:p}, f_load={:p}, f_unload={:p}, f_request={:p}",
+        hlib, f_load as *const (), f_unload as *const (), f_request as *const ()
+    );
 
     // load を呼ぶにゃ（SSP は末尾 \ 付きにゃ）
     let ghost_dir = format!("{}\\", project_dir.to_string_lossy());

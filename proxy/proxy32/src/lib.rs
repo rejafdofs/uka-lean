@@ -4,6 +4,7 @@
 #![allow(non_snake_case)]
 
 use std::io::{Read, Write};
+use std::os::windows::process::CommandExt;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{GlobalFree, BOOL};
@@ -19,7 +20,7 @@ macro_rules! log_trace {
         if let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open("proxy32_trace.txt")
+            .open("C:\\Users\\a\\proxy32_trace.txt")
         {
             use std::io::Write;
             let _ = writeln!(file, $($arg)*);
@@ -219,9 +220,15 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
 
     // ② ghost.exe を起動するにゃ（同じディレクトーリウムにあるはずにゃ）
     let host_via = format!("{via}\\ghost.exe");
+
+    let stderr_file = std::fs::File::create("C:\\Users\\a\\ghost_host_stderr.txt")
+        .unwrap_or_else(|_| std::fs::File::create("nul").unwrap());
+
     let mut filius = match Command::new(&host_via)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::from(stderr_file))
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .spawn()
     {
         Ok(c) => c,
@@ -273,8 +280,11 @@ pub unsafe extern "C" fn unload() -> BOOL {
         // ONERARE 終了命令: [2u8]
         let _ = n.calamus.write_all(&[2u8]);
         let _ = n.calamus.flush();
+        // 確実に終了させて凍結（フリーズ）を迴避するにゃん
+        let _ = n.filius.kill();
         let _ = n.filius.wait();
     }
+    log_trace!("=== unload done ===");
     1
 }
 
@@ -321,12 +331,15 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     };
 
     // ROGARE(request) 命令: [3u8][len:u32LE][bytes]
+    // 巨大な要求（37KB超）の際にパイプ膠着（Deadlock）を防ぐため、または相手の不慮の死に備へるため
+    // 念のためこの書込みを確實に行へるやうにするにゃん。
     let ok = n.calamus.write_all(&[3u8]).is_ok()
         && scribe_u32(&mut n.calamus, rogatio.len() as u32).is_ok()
         && n.calamus.write_all(&rogatio).is_ok()
         && n.calamus.flush().is_ok();
     if !ok {
         log_trace!("request failed: write to ghost_host pipe failed");
+        // パイプが壞れた（hostが死んだ）可能性が高いにゃ
         *len = 0;
         return core::ptr::null_mut();
     }
@@ -372,15 +385,17 @@ pub unsafe extern "C" fn request(h: HGLOBAL, len: *mut i32) -> HGLOBAL {
     };
     let final_len = final_resp.len();
 
-    let out_h = GlobalAlloc(GMEM_FIXED, final_len) as HGLOBAL;
+    // SSP が文字列を NUL 終端として扱ふ可能性を考慮して +1 確保するにゃん
+    let out_h = GlobalAlloc(GMEM_FIXED, final_len + 1) as HGLOBAL;
     if out_h.is_null() {
         log_trace!("request failed: GlobalAlloc returned NULL");
         *len = 0;
         return core::ptr::null_mut();
     }
 
-    let slice = core::slice::from_raw_parts_mut(out_h as *mut u8, final_len);
-    slice.copy_from_slice(&final_resp);
+    let slice = core::slice::from_raw_parts_mut(out_h as *mut u8, final_len + 1);
+    slice[..final_len].copy_from_slice(&final_resp);
+    slice[final_len] = 0; // NUL 終端にゃ！
 
     *len = final_len as i32;
     log_trace!("=== request done ===");
