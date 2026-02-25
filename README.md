@@ -37,7 +37,7 @@ name = "Ghost"
 
 [[lean_exe]]
 name = "ghost"
-root = "Principalis"
+root = "Main"
 ```
 
 ### ③ `Ghost.lean` を書くにゃ
@@ -64,12 +64,12 @@ eventum "OnClose" fun _ => do
 construe
 ```
 
-### ④ `Principalis.lean` を書くにゃ
+### ④ `Main.lean` を書くにゃ
 
 `ghost.exe` のエントリポイント（主關數）として以下を記述するにゃ:
 
 ```lean
--- Principalis.lean
+-- Main.lean
 import UkaLean.Loop
 import Ghost
 
@@ -459,7 +459,7 @@ uka.lean/
 │   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
 │   ├── Loop.lean               ← パイプ直結通信用の小循環（メインループ）
 │   └── Macro.lean              ← varia / eventum / construe DSL マクロ
-└── Principalis.lean            ← 模擬試驗用實行體
+└── Main.lean                   ← 模擬試驗用實行體
 ```
 
 ---

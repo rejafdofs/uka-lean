@@ -11,5 +11,5 @@ name = "Ghost"
 
 [[lean_exe]]
 name = "ghost"
-root = "Principalis"
+root = "Main"
 moreLinkArgs = ["-mconsole"]
