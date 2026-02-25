@@ -37,7 +37,7 @@ name = "Ghost"
 
 [[lean_exe]]
 name = "ghost"
-root = "Main"
+root = "Principalis"
 ```
 
 ### ③ `Ghost.lean` を書くにゃ
@@ -47,11 +47,11 @@ root = "Main"
 import UkaLean
 open UkaLean Sakura
 
-varia perpetua greetCount : Nat := 0
+varia perpetua numerusSalutationum : Nat := 0
 
 eventum "OnBoot" fun _ => do
-  greetCount.modify (· + 1)
-  let numerus ← greetCount.get
+  numerusSalutationum.modify (· + 1)
+  let numerus ← numerusSalutationum.get
   sakura; superficies 0
   loqui s!"起動 {numerus} 囘目にゃん♪"
   finis
@@ -64,16 +64,17 @@ eventum "OnClose" fun _ => do
 construe
 ```
 
-### ④ `Main.lean` を書くにゃ
+### ④ `Principalis.lean` を書くにゃ
 
 `ghost.exe` のエントリポイント（主關數）として以下を記述するにゃ:
 
 ```lean
--- Main.lean
+-- Principalis.lean
 import UkaLean.Loop
 import Ghost
 
-def main : IO Unit := UkaLean.loopPrincipalis
+@[export main]
+def principalis : IO Unit := UkaLean.loopPrincipalis
 ```
 
 ### ⑤ 構築して `ghost.exe` を作るにゃ
@@ -120,9 +121,9 @@ varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存�
 變數は `IO.Ref` として展開されるにゃ。處理器の中から直接使へるにゃ:
 
 ```lean
-let numerus ← greetCount.get   -- 讀む
-greetCount.set 42               -- 書く
-greetCount.modify (· + 1)       -- 更新する
+let numerus ← numerusSalutationum.get   -- 讀む
+numerusSalutationum.set 42               -- 書く
+numerusSalutationum.modify (· + 1)       -- 更新する
 ```
 
 ---
@@ -309,13 +310,13 @@ SSP/
 import UkaLean
 open UkaLean Sakura
 
-varia perpetua  greetCount : Nat  := 0
-varia perpetua  liked       : Bool := false
-varia temporaria talkCount  : Nat  := 0   -- 今囘の起動中だけにゃ
+varia perpetua  numerusSalutationum : Nat  := 0
+varia perpetua  dilectus            : Bool := false
+varia temporaria numerusColloquiorum : Nat  := 0   -- 今囘の起動中だけにゃ
 
 eventum "OnBoot" fun _ => do
-  greetCount.modify (· + 1)
-  let numerus ← greetCount.get
+  numerusSalutationum.modify (· + 1)
+  let numerus ← numerusSalutationum.get
   sakura; superficies 0
   if numerus == 1 then
     loquiEtLinea "はじめましてにゃん！"
@@ -335,7 +336,7 @@ eventum "OnClose" fun _ => do
   finis
 
 eventum "OnMouseDoubleClick" fun rogatio => do
-  talkCount.modify (· + 1)
+  numerusColloquiorum.modify (· + 1)
   match rogatio.referentiam 4 with
   | some "Head" => sakura; superficies 5; loqui "撫でてくれるにゃ？嬉しいにゃん♪"
   | some "Face" => sakura; superficies 9; loqui "にゃっ！？ 顏は恥づかしいにゃ…"
@@ -418,13 +419,13 @@ initialize
 import UkaLean
 open UkaLean
 
-structure PlayerData where
+structure DatorumLusoris where
   gradus : Nat     -- 等級（英語 level のかはりにゃ）
   nomen  : String
   puncta : Float   -- 點數
 
-instance : StatusPermanens PlayerData where
-  typusTag := "PlayerData"
+instance : StatusPermanens DatorumLusoris where
+  typusTag := "DatorumLusoris"
   adBytes p :=
     encodeField p.gradus ++
     encodeField p.nomen  ++
@@ -436,7 +437,7 @@ instance : StatusPermanens PlayerData where
     return { gradus, nomen, puncta }
 
 -- あとはいつも通りにゃ
-varia perpetua player : PlayerData := { gradus := 1, nomen := "シロ", puncta := 0.0 }
+varia perpetua lusor : DatorumLusoris := { gradus := 1, nomen := "シロ", puncta := 0.0 }
 ```
 
 ---
@@ -458,7 +459,7 @@ uka.lean/
 │   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
 │   ├── Loop.lean               ← パイプ直結通信用の小循環（メインループ）
 │   └── Macro.lean              ← varia / eventum / construe DSL マクロ
-└── Main.lean                   ← 模擬試驗用實行體
+└── Principalis.lean            ← 模擬試驗用實行體
 ```
 
 ---

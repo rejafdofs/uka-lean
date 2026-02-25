@@ -6,45 +6,45 @@ import UkaLean.Exporta
 namespace UkaLean
 
 /-- ログ出力用（depurgatio）關數にゃん。現在は無效化（inactivatus）してゐるにゃ -/
-def logTrace (_msg : String) : IO Unit := do
+def registrareVestigium (_nuntius : String) : IO Unit := do
   return ()
   -- let domus := "C:\\Users\\a\\ghost_lean_trace.txt"
-  -- let out ← IO.FS.Handle.mk domus IO.FS.Mode.append
-  -- out.putStrLn _msg
-  -- out.flush
+  -- let scriptor ← IO.FS.Handle.mk domus IO.FS.Mode.append
+  -- scriptor.putStrLn _nuntius
+  -- scriptor.flush
 
 /-- リトルエンディアン 4バイトを發信（出力）するにゃん -/
-def egressusU32 (stdout : IO.FS.Stream) (n : UInt32) : IO Unit := do
-  let array : ByteArray := ⟨#[
-    (n &&& 0xFF).toUInt8,
-    ((n >>> 8) &&& 0xFF).toUInt8,
-    ((n >>> 16) &&& 0xFF).toUInt8,
-    ((n >>> 24) &&& 0xFF).toUInt8
+def egressusU32 (rivusEgressus : IO.FS.Stream) (numerus : UInt32) : IO Unit := do
+  let series : ByteArray := ⟨#[
+    (numerus &&& 0xFF).toUInt8,
+    ((numerus >>> 8) &&& 0xFF).toUInt8,
+    ((numerus >>> 16) &&& 0xFF).toUInt8,
+    ((numerus >>> 24) &&& 0xFF).toUInt8
   ]⟩
-  stdout.write array
+  rivusEgressus.write series
 
 /-- リトルエンディアン 4バイトを讀信するにゃん。
     讀めなかつた場合は 0 を返すにゃ -/
-def ingressusU32 (stdin : IO.FS.Stream) : IO UInt32 := do
-  let b ← stdin.read 4
-  if b.size < 4 then return 0
-  let b0 := b[0]!.toUInt32
-  let b1 := b[1]!.toUInt32
-  let b2 := b[2]!.toUInt32
-  let b3 := b[3]!.toUInt32
-  let n := b0 ||| (b1 <<< 8) ||| (b2 <<< 16) ||| (b3 <<< 24)
-  return n
+def ingressusU32 (rivusIngressus : IO.FS.Stream) : IO UInt32 := do
+  let o ← rivusIngressus.read 4
+  if o.size < 4 then return 0
+  let o0 := o[0]!.toUInt32
+  let o1 := o[1]!.toUInt32
+  let o2 := o[2]!.toUInt32
+  let o3 := o[3]!.toUInt32
+  let numerus := o0 ||| (o1 <<< 8) ||| (o2 <<< 16) ||| (o3 <<< 24)
+  return numerus
 
 /-- 指定されたバイト數を完全に讀み切る遞歸關數にゃん -/
-partial def ingressusExactus (stdin : IO.FS.Stream) (magnitudo : Nat) (acc : ByteArray := ByteArray.empty) : IO ByteArray := do
-  if acc.size >= magnitudo then
-    return acc
-  let reliquum := magnitudo - acc.size
-  let b ← stdin.read reliquum.toUSize
-  if b.size == 0 then
+partial def ingressusExactus (rivusIngressus : IO.FS.Stream) (magnitudo : Nat) (accumulatum : ByteArray := ByteArray.empty) : IO ByteArray := do
+  if accumulatum.size >= magnitudo then
+    return accumulatum
+  let reliquum := magnitudo - accumulatum.size
+  let o ← rivusIngressus.read reliquum.toUSize
+  if o.size == 0 then
     -- EOF か讀取エラーにゃ
-    return acc
-  ingressusExactus stdin magnitudo (acc ++ b)
+    return accumulatum
+  ingressusExactus rivusIngressus magnitudo (accumulatum ++ o)
 
 /-- 要求を讀取つて應答を返す中繼循環（loop）にゃん。
     Rust 側の proxy32_host.exe の代はりを完全に機能させるにゃ！
@@ -53,63 +53,63 @@ partial def ingressusExactus (stdin : IO.FS.Stream) (magnitudo : Nat) (acc : Byt
     - コマンド 3: REQUEST (要求讀取＋長さと應答を返す) -/
 @[export uka_lean_loop_principalis]
 partial def loopPrincipalis : IO Unit := do
-  let stdin ← IO.getStdin
-  let stdout ← IO.getStdout
+  let rivusIngressus ← IO.getStdin
+  let rivusEgressus ← IO.getStdout
 
   -- コマンドを表す1バイトを讀むにゃん
-  let mandatum ← stdin.read 1
+  let mandatum ← rivusIngressus.read 1
   if mandatum.size < 1 then
     return () -- EOF にゃ
 
   let m := mandatum[0]!
   if m == 1 then
     -- LOAD 命令にゃん: [1u8] [4bytes:len] [bytes:path] -> [1u8] を返すにゃ
-    let viaLen ← ingressusU32 stdin
-    if viaLen == 0 then
-      logTrace "[FATAL] viaLen is 0"
+    let longitudoViae ← ingressusU32 rivusIngressus
+    if longitudoViae == 0 then
+      registrareVestigium "[PERNICIES] longitudoViae est 0"
       return ()
-    let viaBytes ← ingressusExactus stdin viaLen.toNat
-    let viaStr := String.fromUTF8! viaBytes
-    logTrace s!"[LOAD] via={viaStr}, len={viaLen}"
+    let octetiViae ← ingressusExactus rivusIngressus longitudoViae.toNat
+    let catenaViae := String.fromUTF8! octetiViae
+    registrareVestigium s!"[LOAD] via={catenaViae}, len={longitudoViae}"
     -- UkaLean 全域側の Load 處理を喚ぶにゃ
-    let success ← UkaLean.exportaLoad viaStr
-    stdout.write ⟨#[success.toUInt8]⟩
-    stdout.flush
+    let resSecunda ← UkaLean.exportaLoad catenaViae
+    rivusEgressus.write ⟨#[resSecunda.toUInt8]⟩
+    rivusEgressus.flush
     loopPrincipalis
 
   else if m == 2 then
     -- UNLOAD 命令にゃん: [2u8] -> 拔けるにゃ
-    logTrace "[UNLOAD] called"
+    registrareVestigium "[UNLOAD] vocatus"
     let _ ← UkaLean.exportaUnload
-    logTrace "[UNLOAD] done"
+    registrareVestigium "[UNLOAD] perfectus"
     return ()
 
   else if m == 3 then
     -- REQUEST 命令にゃん: [3u8] [4bytes:len] [bytes:req] -> [4bytes:len] [bytes:res] を返すにゃ
-    let reqLen ← ingressusU32 stdin
-    if reqLen == 0 then
-      logTrace "[FATAL] reqLen is 0"
+    let longitudoRogationis ← ingressusU32 rivusIngressus
+    if longitudoRogationis == 0 then
+      registrareVestigium "[PERNICIES] longitudoRogationis est 0"
       return ()
-    logTrace s!"[REQUEST] reqLen={reqLen}"
-    let reqBytes ← ingressusExactus stdin reqLen.toNat
-    if reqBytes.size.toUInt32 < reqLen then
-      logTrace s!"[FATAL] short read! expected {reqLen}, got {reqBytes.size}"
+    registrareVestigium s!"[REQUEST] longitudoRogationis={longitudoRogationis}"
+    let octetiRogationis ← ingressusExactus rivusIngressus longitudoRogationis.toNat
+    if octetiRogationis.size.toUInt32 < longitudoRogationis then
+      registrareVestigium s!"[PERNICIES] parum lectum! expectatum {longitudoRogationis}, obtentum {octetiRogationis.size}"
 
-    let reqStr := String.fromUTF8! reqBytes
+    let catenaRogationis := String.fromUTF8! octetiRogationis
 
     -- UkaLean 全域側の Request 處理を喚ぶにゃん♪
-    let resStr ← UkaLean.exportaRequest reqStr
-    let resBytes := resStr.toUTF8
-    logTrace s!"[REQUEST] DONE, resLen={resBytes.size}"
+    let catenaResponsi ← UkaLean.exportaRequest catenaRogationis
+    let octetiResponsi := catenaResponsi.toUTF8
+    registrareVestigium s!"[REQUEST] PERFECTUM, magnitudoResponsi={octetiResponsi.size}"
 
-    egressusU32 stdout resBytes.size.toUInt32
-    stdout.write resBytes
-    stdout.flush
+    egressusU32 rivusEgressus octetiResponsi.size.toUInt32
+    rivusEgressus.write octetiResponsi
+    rivusEgressus.flush
     loopPrincipalis
 
   else
     -- 未知のコマンド、ひとまづ無視して繼續するにゃん
-    logTrace s!"[UNKNOWN] command: {m}"
+    registrareVestigium s!"[IGNOTUM] mandatum: {m}"
     loopPrincipalis
 
 end UkaLean
