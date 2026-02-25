@@ -17,14 +17,15 @@ type HGLOBAL = *mut core::ffi::c_void;
 
 macro_rules! log_trace {
     ($($arg:tt)*) => {
-        if let Ok(mut file) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("C:\\Users\\a\\proxy32_trace.txt")
-        {
-            use std::io::Write;
-            let _ = writeln!(file, $($arg)*);
-        }
+        // Logging disabled for release (depurgatio inactivata)
+        // if let Ok(mut file) = std::fs::OpenOptions::new()
+        //     .create(true)
+        //     .append(true)
+        //     .open("C:\\Users\\a\\proxy32_trace.txt")
+        // {
+        //     use std::io::Write;
+        //     let _ = writeln!(file, $($arg)*);
+        // }
     };
 }
 
@@ -232,8 +233,8 @@ pub unsafe extern "C" fn load(h: HGLOBAL, len: i32) -> BOOL {
         .spawn()
     {
         Ok(c) => c,
-        Err(e) => {
-            log_trace!("load failed: failed to spawn ghost.exe: {}", e);
+        Err(_) => {
+            log_trace!("load failed: failed to spawn ghost.exe");
             return 0;
         }
     };

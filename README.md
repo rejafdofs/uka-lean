@@ -17,7 +17,7 @@ Lean 4 でうかがか(Ukagaka)ゴーストの栞を書くためのビブリオ�
 ### ① 新規 Lake プロヱクトゥムを作るにゃ
 
 ```bash
-lake new my-ghost lib
+lake new my-ghost
 cd my-ghost
 ```
 
@@ -34,8 +34,10 @@ name = "uka-lean"
 
 [[lean_lib]]
 name = "Ghost"
-globs = ["Ghost"]
 
+[[lean_exe]]
+name = "ghost"
+root = "Main"
 ```
 
 ### ③ `Ghost.lean` を書くにゃ
@@ -62,71 +64,35 @@ eventum "OnClose" fun _ => do
 construe
 ```
 
-### ④ `ffi/shiori.c` を入手するにゃ
+### ④ `Main.lean` を書くにゃ
 
-このリポジトーリウムの `ffi/shiori.c` を自分のプロヱクトゥムの `ffi/` ディレクトーリウムに置くにゃ:
+`ghost.exe` のエントリポイント（主關數）として以下を記述するにゃ:
 
+```lean
+-- Main.lean
+import UkaLean.Loop
+import Ghost
+
+def main : IO Unit := UkaLean.loopPrincipalis
 ```
-my-ghost/
-├── lakefile.toml
-├── lean-toolchain
-├── Ghost.lean
-└── ffi/
-    └── shiori.c   ← ここにゃ
-```
+
+### ⑤ 構築して `ghost.exe` を作るにゃ
+
+以下を **ゴーストのプロジェクト 루트**（`lakefile.toml` がある場所）で實行するにゃ。
 
 ```bash
-mkdir -p ffi
-curl -L -o ffi/shiori.c https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c
-```
-
-```powershell
-New-Item -ItemType Directory -Force ffi | Out-Null
-curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
-```
-
-### ⑤ 構築して DLL を作るにゃ
-
-以下を **ゴーストのプロジェクトルート**（`lakefile.toml` がある場所）で実行するにゃ。
-`examples/` など設定ファイルがない場所で実行すると失敗するにゃん。
-
-```powershell
-if (!(Test-Path .\ffi\shiori.c)) {
-  New-Item -ItemType Directory -Force ffi | Out-Null
-  curl.exe -L "https://raw.githubusercontent.com/rejafdofs/uka-lean/master/ffi/shiori.c" -o "ffi/shiori.c"
-}
-if (!(Test-Path .\shiori.dll)) {
-  curl.exe -L "https://github.com/rejafdofs/uka-lean/releases/latest/download/shiori.dll" -o "shiori.dll"
-  curl.exe -L "https://github.com/rejafdofs/uka-lean/releases/latest/download/ghost.exe" -o "ghost.exe"
-}
 lake update
-$leanPrefix = (lean --print-prefix).Trim()
-
-lake build Ghost:static UkaLean:static
-$ghostLib = Get-ChildItem .lake\build\lib -Filter *_Ghost.a -File | Select-Object -First 1 -ExpandProperty FullName
-$ukaLib   = Get-ChildItem .lake\packages\uka-lean\.lake\build\lib -Filter *_UkaLean.a -File | Select-Object -First 1 -ExpandProperty FullName
-$initSym  = (nm -g $ghostLib | Select-String " T initialize_.*_Ghost$" | Select-Object -First 1).ToString().Trim().Split()[-1]
-
-# 眞の 64-bit 實体を構築するにゃ
-leanc -shared -o ghost.dll ffi/shiori.c `
-  -D "initialize_Ghost=$initSym" `
-  -I "$leanPrefix/include" `
-  "$ghostLib" `
-  "$ukaLib" `
-  -lws2_32
-
-# Lean ランタイム DLL を同梱するにゃ（ghost.dll の動作に必要にゃ最小限だけにゃん）
-@(
-  "libleanshared.dll",
-  "libleanshared_1.dll",
-  "libleanshared_2.dll",
-  "libInit_shared.dll",
-  "libc++.dll",
-  "zlib1.dll"
-) | ForEach-Object { Copy-Item "$leanPrefix\bin\$_" "." -ErrorAction SilentlyContinue }
+lake build ghost
 ```
 
-`shiori.dll`, `ghost.exe`, `ghost.dll`, および Lean ランタイム DLL の一式が完成したら `ghost/master/` に置いて SSP で起動するにゃ♪
+完成した `.lake/build/bin/ghost.exe` をコピーするにゃ！
+
+### ⑥ `shiori.dll` (代理) を入手して配置するにゃ
+
+最新の `shiori.dll` を uka-lean の Release からダウンロードし、構築した `ghost.exe` と同じ場所に置くことで、SSP から讀み込めるやうになるにゃ♪
+
+- `shiori.dll` (SSP から讀まれる 32-bit Rust 製代理)
+- `ghost.exe` (Lean 製の眞の主人公)
 
 ---
 
@@ -314,8 +280,8 @@ eventum "OnBoot" fun _ => do
 Lean 4 は 64-bit 向けのバイナリしか出力できにゃいにゃ。一方、SSP は 32-bit アッパラートゥス(apparatus)にゃので、そのまゝでは變換した DLL を讀み込めにゃいにゃん…。
 そのため、32-bit DLL として振る舞ふ **代理（proxy）** が必要になるにゃ。
 
-そこで、32-bit の SSP と 64-bit の Lean 實体を橋渡しする自前の代理(`proxy32.c`, `proxy64.c`)を準備したにゃん♪
-`shiori.dll` が SSP と通信し、そこから `ghost.exe` (64-bitプロケッスス) を呼び出して、眞の實体 `ghost.dll` を動かす仕組にゃ！
+そこで、32-bit の SSP と 64-bit の Lean 實体を橋渡しする自前の代理(`shiori.dll`)を準備したにゃん♪
+`shiori.dll` が SSP と通信し、そこから `ghost.exe` (Lean 製の 64-bit プロケッスス) を呼び出して標準入出力でパイプ通信（直結）する仕組にゃ！C 言語レイヤーによる中繼や DLL ビルドの苦痛はもう存在しにゃいのでござる！
 
 ---
 
@@ -331,8 +297,7 @@ SSP/
         └── ghost/
             └── master/
                 ├── shiori.dll        ← ★ SSP から直接讀まれる 32-bit 代理にゃ
-                ├── ghost.exe         ← ★ 代理から呼ばれる 64-bit の中繼プロケッススにゃ
-                ├── ghost.dll         ← ★ Lean で構築した 64-bit の眞の實体にゃ
+                ├── ghost.exe         ← ★ 代理から全件丸投げされて動くLean製の眞の主人公にゃ
                 └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
 ```
 
@@ -484,16 +449,15 @@ uka.lean/
 ├── lakefile.toml
 ├── UkaLean.lean                ← 根モドゥルス（全體を再輸出）
 ├── UkaLean/
-│   ├── Protocollum.lean        ← SHIORI/3.0 共通型・定數
+│   ├── Protocollum.lean        ← SHIORI/3.0 共通型・定数
 │   ├── SakuraScriptum.lean     ← SakuraScript モナド DSL
 │   ├── Rogatio.lean            ← SHIORI/3.0 要求構文解析器
 │   ├── Responsum.lean          ← SHIORI/3.0 應答構築器
 │   ├── Nuculum.lean            ← 核心骨格（Shiori 型・事象經路設定）
-│   ├── Exporta.lean            ← @[export] FFI 輸出關數群
+│   ├── Exporta.lean            ← 內部用實行關數群
 │   ├── StatusPermanens.lean    ← 永続化型クラス・補助關數・逆關數定理
+│   ├── Loop.lean               ← パイプ直結通信用の小循環（メインループ）
 │   └── Macro.lean              ← varia / eventum / construe DSL マクロ
-├── ffi/
-│   └── shiori.c                ← C 包裝（SSP ↔ Lean 橋渡し）
 └── Main.lean                   ← 模擬試驗用實行體
 ```
 
