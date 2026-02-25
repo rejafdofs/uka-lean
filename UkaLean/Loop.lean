@@ -47,7 +47,7 @@ partial def ingressusExactus (rivusIngressus : IO.FS.Stream) (magnitudo : Nat) (
   ingressusExactus rivusIngressus magnitudo (accumulatum ++ o)
 
 /-- 要求を讀取つて應答を返す中繼循環（loop）にゃん。
-    Rust 側の proxy32_host.exe の代はりを完全に機能させるにゃ！
+    Rust 側の procurator32_host.exe の代はりを完全に機能させるにゃ！
     - コマンド 1: LOAD (路徑讀取＋初期化後 [1] を返す)
     - コマンド 2: UNLOAD (終了後 [1] を返してループ拔ける)
     - コマンド 3: REQUEST (要求讀取＋長さと應答を返す) -/

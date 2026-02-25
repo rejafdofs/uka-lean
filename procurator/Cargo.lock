@@ -3,13 +3,6 @@
 version = 4
 
 [[package]]
-name = "ghost_host"
-version = "0.1.0"
-dependencies = [
- "windows-sys",
-]
-
-[[package]]
 name = "probatio"
 version = "0.1.0"
 dependencies = [
@@ -17,7 +10,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy32"
+name = "procurator32"
 version = "0.1.0"
 dependencies = [
  "windows-sys",

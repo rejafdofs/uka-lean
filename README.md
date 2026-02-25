@@ -79,15 +79,11 @@ lake build ghost
 
 完成した `.lake/build/bin/ghost.exe` をコピーするにゃ！
 
-### ⑥ `shiori.dll` (代理) を入手して配置するにゃ
+### ⑥ `shiori.dll` を入手して配置するにゃ
 
 最新の `shiori.dll` を uka-lean の Release から取得(descensus)し、構築した `ghost.exe` と同じ場所に置くことで、SSP から讀み込めるやうになるにゃ♪
 
-- `shiori.dll` (SSP から讀まれる 32-bit Rust 製代理)
-- `ghost.exe` (Lean 製の眞の主人公)
 
-> [!TIP]
-> `libLake_shared.dll` や `libleanshared.dll` などの動的リンクビブリオテーカ(bibliotheca)は、スクリプトゥム(scriptum)實行(`lean --run`)時にのみ使はれ、`lake build` コマンドで生成された轉換濟の `ghost.exe` 實行體には**不要**にゃん！配布時は純粹に上記の2つのファスキクルス(fasciculus)だけで完璧に動くでござる。
 
 ---
 
@@ -291,8 +287,8 @@ SSP/
         │   └── master/               ← シェル畫像
         └── ghost/
             └── master/
-                ├── shiori.dll        ← ★ SSP から直接讀まれる 32-bit 代理にゃ
-                ├── ghost.exe         ← ★ 代理から全件丸投げされて動くLean製の眞の主人公にゃ
+                ├── shiori.dll        ← ★ SSP から直接讀まれて本體にリクエストを渡にゃ
+                ├── ghost.exe         ← ★ 本體にゃ
                 └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
 ```
 
@@ -346,38 +342,9 @@ eventum "OnMinuteChange" fun rogatio => do
   | _, _ => finis   -- 毎分は何もしにゃい
 
 construe
+def main : IO Unit := UkaLean.loopPrincipalis
 ```
 
----
-
-## 低水準 API（構文擴張を使はない場合）
-
-`varia`/`eventum`/`construe` を使はずに直接書くこともできるにゃ:
-
-```lean
-import UkaLean
-open UkaLean Sakura
-
-def onBoot (_ : Rogatio) : SakuraIO Unit := do
-  sakura; superficies 0
-  loquiEtLinea "こんにゃんにゃ！"
-  finis
-
-initialize
-  UkaLean.registraShiori [("OnBoot", onBoot)]
-```
-
-永続化フック附きの場合は `registraShioriEx` を使ふにゃ:
-
-```lean
-initialize
-  UkaLean.registraShioriEx
-    [("OnBoot", onBoot), ("OnClose", onClose)]
-    (some (fun domus => do ...))   -- load 時に呼ばれるにゃ
-    (some (do ...))                -- unload 時に呼ばれるにゃ
-```
-
----
 
 ## 永続化ファスキクルスの形式
 
@@ -414,7 +381,7 @@ import UkaLean
 open UkaLean
 
 structure DatorumLusoris where
-  gradus : Nat     -- 等級（英語 level のかはりにゃ）
+  gradus : Nat     -- 
   nomen  : String
   puncta : Float   -- 點數
 

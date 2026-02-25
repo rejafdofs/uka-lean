@@ -50,7 +50,7 @@ private def parseCastellum (s : String) : Option (String × String) :=
     | [_] => none
     | clavis :: cetera =>
       let v := ":".intercalate cetera
-      some (clavis, v.trim)
+      some (clavis, v.trimAscii.toString)
   | clavis :: cetera =>
     -- cetera を再結合（値に ": " が含まれてゐても大丈夫にゃん）
     some (clavis, ": ".intercalate cetera)
@@ -78,7 +78,7 @@ private def referentiaIndex (clavis : String) : Option Nat :=
     none
 
 /-- 文字列の前後の空白を除去する補助にゃん -/
-private def trimma (s : String) : String := s.trim
+private def trimma (s : String) : String := s.trimAscii.toString
 
 /-- SHIORI/3.0 要求文字列を完全に解釈するにゃん -/
 def interpreta (s : String) : Except String Rogatio := do

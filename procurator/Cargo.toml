@@ -1,0 +1,3 @@
+[workspace]
+members = ["procurator32", "probatio"]
+resolver = "2"

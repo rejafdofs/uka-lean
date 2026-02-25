@@ -1,4 +1,4 @@
-/*! proxy32.c の Rust 版にゃん♪
+/*! procurator32.c の Rust 版にゃん♪
  * 32-bit DLL として SSP に讀み込まれ、ghost.exe へパイプで仕事を丸投げするにゃ
  */
 #![allow(non_snake_case)]
@@ -21,7 +21,7 @@ macro_rules! log_trace {
         // if let Ok(mut file) = std::fs::OpenOptions::new()
         //     .create(true)
         //     .append(true)
-        //     .open("C:\\Users\\a\\proxy32_trace.txt")
+        //     .open("C:\\Users\\a\\procurator32_trace.txt")
         // {
         //     use std::io::Write;
         //     let _ = writeln!(file, $($arg)*);
