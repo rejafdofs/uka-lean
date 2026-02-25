@@ -34,6 +34,17 @@ def ingressusU32 (stdin : IO.FS.Stream) : IO UInt32 := do
   let n := b0 ||| (b1 <<< 8) ||| (b2 <<< 16) ||| (b3 <<< 24)
   return n
 
+/-- 指定されたバイト數を完全に讀み切る遞歸關數にゃん -/
+partial def ingressusExactus (stdin : IO.FS.Stream) (magnitudo : Nat) (acc : ByteArray := ByteArray.empty) : IO ByteArray := do
+  if acc.size >= magnitudo then
+    return acc
+  let reliquum := magnitudo - acc.size
+  let b ← stdin.read reliquum.toUSize
+  if b.size == 0 then
+    -- EOF か讀取エラーにゃ
+    return acc
+  ingressusExactus stdin magnitudo (acc ++ b)
+
 /-- 要求を讀取つて應答を返す中繼循環（loop）にゃん。
     Rust 側の proxy32_host.exe の代はりを完全に機能させるにゃ！
     - コマンド 1: LOAD (路徑讀取＋初期化後 [1] を返す)
@@ -56,7 +67,7 @@ partial def loopPrincipalis : IO Unit := do
     if viaLen == 0 then
       logTrace "[FATAL] viaLen is 0"
       return ()
-    let viaBytes ← stdin.read viaLen.toUSize
+    let viaBytes ← ingressusExactus stdin viaLen.toNat
     let viaStr := String.fromUTF8! viaBytes
     logTrace s!"[LOAD] via={viaStr}, len={viaLen}"
     -- UkaLean 全域側の Load 處理を喚ぶにゃ
@@ -79,7 +90,7 @@ partial def loopPrincipalis : IO Unit := do
       logTrace "[FATAL] reqLen is 0"
       return ()
     logTrace s!"[REQUEST] reqLen={reqLen}"
-    let reqBytes ← stdin.read reqLen.toUSize
+    let reqBytes ← ingressusExactus stdin reqLen.toNat
     if reqBytes.size.toUInt32 < reqLen then
       logTrace s!"[FATAL] short read! expected {reqLen}, got {reqBytes.size}"
 
