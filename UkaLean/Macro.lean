@@ -6,6 +6,7 @@
 import Lean
 import UkaLean.StatusPermanens
 import UkaLean.Exporta
+import UkaLean.Loop
 
 open Lean Elab Command
 
@@ -188,4 +189,3 @@ elab "construe" : command => do
     ))
 
 end UkaLean
-import UkaLean.Loop
