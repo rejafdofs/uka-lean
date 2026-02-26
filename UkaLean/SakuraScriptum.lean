@@ -89,7 +89,7 @@ def adscribe {m : Type → Type} [Monad m] : SakuraM m Unit := emitte "\\C"
 
 /-- カーソル位置を指定する（\\_l[x,y]）にゃん -/
 def cursor {m : Type → Type} [Monad m] (x y : String) : SakuraM m Unit :=
-  emitte s!"\\_l[{x},{y}]"
+  emitte s!"\\_l[{evadeTextus x},{evadeTextus y}]"
 
 -- ════════════════════════════════════════════════════
 --  待機 (Mora) — テンポ制御
@@ -123,23 +123,23 @@ def tempusCriticum {m : Type → Type} [Monad m] : SakuraM m Unit :=
 -- ════════════════════════════════════════════════════
 
 /-- 選擇肢を追加する（\\q[表題,識別子]）にゃん。
-    表題(titulus)の特殊文字は自動的に遁走されるにゃ -/
+    表題(titulus)や識別子の特殊文字は自動的に遁走されるにゃ -/
 def optio {m : Type → Type} [Monad m] (titulus signum : String) : SakuraM m Unit :=
-  emitte s!"\\q[{evadeTextus titulus},{signum}]"
+  emitte s!"\\q[{evadeTextus titulus},{evadeTextus signum}]"
 
 /-- 事象附き選擇肢（\\q[表題,OnEvent,ref0,ref1,...]）にゃん。
-    表題(titulus)の特殊文字は自動的に遁走されるにゃ -/
+    表題(titulus)や事象の特殊文字は自動的に遁走されるにゃ -/
 def optioEventum {m : Type → Type} [Monad m]
     (titulus eventum : String) (citationes : List String := []) : SakuraM m Unit :=
   let catenaCitationis := match citationes with
     | [] => ""
-    | res => "," ++ ",".intercalate res
-  emitte s!"\\q[{evadeTextus titulus},{eventum}{catenaCitationis}]"
+    | res => "," ++ ",".intercalate (res.map evadeTextus)
+  emitte s!"\\q[{evadeTextus titulus},{evadeTextus eventum}{catenaCitationis}]"
 
 /-- 錨（\\_a[id]...テキスト...\\_a）にゃん。
     閉ぢる時は `fineAncora` を呼ぶにゃ -/
 def ancora {m : Type → Type} [Monad m] (id : String) : SakuraM m Unit :=
-  emitte s!"\\_a[{id}]"
+  emitte s!"\\_a[{evadeTextus id}]"
 
 /-- 錨を閉ぢる（\\_a）にゃん -/
 def fineAncora {m : Type → Type} [Monad m] : SakuraM m Unit :=
@@ -202,11 +202,11 @@ def altitudoLitterarum {m : Type → Type} [Monad m] (n : Nat) : SakuraM m Unit 
 
 /-- 書體名の設定（\\f[name,font]）にゃん -/
 def nomenFontis {m : Type → Type} [Monad m] (nomen : String) : SakuraM m Unit :=
-  emitte s!"\\f[name,{nomen}]"
+  emitte s!"\\f[name,{evadeTextus nomen}]"
 
 /-- 文字揃へ（\\f[align,方向]）にゃん -/
 def allineatio {m : Type → Type} [Monad m] (directio : String) : SakuraM m Unit :=
-  emitte s!"\\f[align,{directio}]"
+  emitte s!"\\f[align,{evadeTextus directio}]"
 
 /-- 書式を既定に戾す（\\f[default]）にゃん -/
 def formaPraefinita {m : Type → Type} [Monad m] : SakuraM m Unit :=
@@ -223,7 +223,7 @@ def bulla {m : Type → Type} [Monad m] (n : Nat) : SakuraM m Unit :=
 /-- 吹出しに畫像を重ねる（\\_b[path,x,y]）にゃん -/
 def imagoBullae {m : Type → Type} [Monad m]
     (via : String) (x y : Nat) : SakuraM m Unit :=
-  emitte s!"\\_b[{via},{x},{y}]"
+  emitte s!"\\_b[{evadeTextus via},{x},{y}]"
 
 -- ════════════════════════════════════════════════════
 --  音聲 (Sonus)
@@ -231,7 +231,7 @@ def imagoBullae {m : Type → Type} [Monad m]
 
 /-- 音聲を再生する（\\_v[file]）にゃん -/
 def sonus {m : Type → Type} [Monad m] (via : String) : SakuraM m Unit :=
-  emitte s!"\\_v[{via}]"
+  emitte s!"\\_v[{evadeTextus via}]"
 
 /-- 音聲の終了を待つ（\\_V）にゃん -/
 def expectaSonum {m : Type → Type} [Monad m] : SakuraM m Unit :=
@@ -246,24 +246,24 @@ def excita {m : Type → Type} [Monad m]
     (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
   let catenaCitationis := match citationes with
     | [] => ""
-    | res => "," ++ ",".intercalate res
-  emitte s!"\\![raise,{eventum}{catenaCitationis}]"
+    | res => "," ++ ",".intercalate (res.map evadeTextus)
+  emitte s!"\\![raise,{evadeTextus eventum}{catenaCitationis}]"
 
 /-- 事象の結果をその場に埋め込む（\\![embed,event,r0,...]）にゃん -/
 def insere {m : Type → Type} [Monad m]
     (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
   let catenaCitationis := match citationes with
     | [] => ""
-    | res => "," ++ ",".intercalate res
-  emitte s!"\\![embed,{eventum}{catenaCitationis}]"
+    | res => "," ++ ",".intercalate (res.map evadeTextus)
+  emitte s!"\\![embed,{evadeTextus eventum}{catenaCitationis}]"
 
 /-- 通知事象（\\![notify,event,r0,...]）にゃん -/
 def notifica {m : Type → Type} [Monad m]
     (eventum : String) (citationes : List String := []) : SakuraM m Unit :=
   let catenaCitationis := match citationes with
     | [] => ""
-    | res => "," ++ ",".intercalate res
-  emitte s!"\\![notify,{eventum}{catenaCitationis}]"
+    | res => "," ++ ",".intercalate (res.map evadeTextus)
+  emitte s!"\\![notify,{evadeTextus eventum}{catenaCitationis}]"
 
 -- ════════════════════════════════════════════════════
 --  窓制御 (Imperium Fenestrae)
@@ -281,7 +281,7 @@ def recede {m : Type → Type} [Monad m] : SakuraM m Unit := emitte "\\4"
 
 /-- URL やファスキクルスを開く（\\j[url]）にゃん -/
 def aperi {m : Type → Type} [Monad m] (nexus : String) : SakuraM m Unit :=
-  emitte s!"\\j[{nexus}]"
+  emitte s!"\\j[{evadeTextus nexus}]"
 
 /-- 特殊文字の遁走(escape)にゃん -/
 def evade {m : Type → Type} [Monad m] (c : Char) : SakuraM m Unit :=
