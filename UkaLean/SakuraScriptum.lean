@@ -31,11 +31,11 @@ def emitte {m : Type → Type} [Monad m] (s : String) : SakuraM m Unit :=
     loqui 等の表示系關數はこれを通すから、お嬢樣は氣にしにゃくていいにゃ♪ -/
 def evadeTextus (s : String) : String :=
   s.foldl (fun acc c =>
-    acc ++ match c with
-    | '\\' => "\\\\"
-    | '%'  => "\\%"
-    | ']'  => "\\]"
-    | _    => String.ofList [c]
+    match c with
+    | '\\' => acc ++ "\\\\"
+    | '%'  => acc ++ "\\%"
+    | ']'  => acc ++ "\\]"
+    | _    => acc.push c
   ) ""
 
 /-- 文字列を表示するにゃん。

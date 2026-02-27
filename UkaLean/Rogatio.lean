@@ -112,19 +112,16 @@ def interpreta (s : String) : Except String Rogatio := do
 
     -- Reference 頭部を收集するにゃん
     let mut maximumIndex : Nat := 0
-    let mut pariaNumerata : List (Nat × String) := []
+    let mut pariaNumerata : Array (Nat × String) := #[]
     for (k, v) in cappitta do
       match referentiaIndex k with
       | some n =>
-        pariaNumerata := (n, v) :: pariaNumerata
+        pariaNumerata := pariaNumerata.push (n, v)
         if n + 1 > maximumIndex then maximumIndex := n + 1
       | none => pure ()
-    pariaNumerata := pariaNumerata.reverse
 
-    -- 配列を構築するにゃん（空の配列から push で作るにゃ）
-    let mut referentiae : Array String := #[]
-    for _ in List.range maximumIndex do
-      referentiae := referentiae.push ""
+    -- 配列を構築するにゃん
+    let mut referentiae := Array.mkArray maximumIndex ""
     for (n, v) in pariaNumerata do
       if h : n < referentiae.size then
         referentiae := referentiae.set n v

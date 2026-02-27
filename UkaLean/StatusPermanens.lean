@@ -327,8 +327,8 @@ def executareScripturam
   let mut paria : List (String × String × ByteArray) := []
   for (nomen, actio) in tractores do
     let (tag, valor) ← actio
-    paria := paria ++ [(nomen, tag, valor)]
-  return paria
+    paria := (nomen, tag, valor) :: paria
+  return paria.reverse
 
 -- ═══════════════════════════════════════════════════
 -- encodeField / decodeField 逆關數の定理にゃん♪
