@@ -314,6 +314,28 @@ def keroLoquitur {m : Type → Type} [Monad m]
   kero; superficies sup; loqui s
 
 -- ════════════════════════════════════════════════════
+--  無作爲 (Fortuita) — ランダム選擇
+-- ════════════════════════════════════════════════════
+
+/-- 配列からランダムに1つ選ぶにゃん。空配列にゃら空文字列を返すにゃ。
+    インデックスは `i % n` で計算するから、配列アクセスは常に安全にゃ♪ -/
+def elige (optiones : Array String) : IO String := do
+  if optiones.isEmpty then return ""
+  let n := optiones.size
+  let index ← IO.rand 0 (n - 1)
+  let i := index % n
+  return optiones[i]!
+
+/-- 配列からランダムに1つ選んで表示するにゃん。
+    `elige` + `loqui` の便利關數にゃ♪
+    ```
+    fortuito #["やっほー！", "こんにちは！", "おはよう！"]
+    ``` -/
+def fortuito (optiones : Array String) : SakuraIO Unit := do
+  let s ← elige optiones
+  loqui s
+
+-- ════════════════════════════════════════════════════
 --  實行 (Executio)
 -- ════════════════════════════════════════════════════
 

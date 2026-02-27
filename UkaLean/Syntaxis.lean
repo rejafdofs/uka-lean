@@ -130,6 +130,8 @@ elab "construe" : command => do
 
   if variaePermanentes.isEmpty then
     -- 永続化にゃし: シンプレクス(simplex)にゃ registraShiori を使ふにゃ
+    -- servaStatum は何もしにゃい版を生成（コンパイルエッロル防止にゃ）
+    elabCommand (← `(def servaStatum : IO Unit := pure ()))
     elabCommand (← `(
       initialize (UkaLean.registraShiori [$pariaTractatorum,*])
     ))
@@ -170,7 +172,17 @@ elab "construe" : command => do
     let terminusOnerandi    ← `([$elementaOnerandi,*])
     let terminusServandi    ← `([$elementaServandi,*])
 
+    -- servaStatum: 任意の時點で永続化變數を保存できる關數にゃん♪
+    -- onExire フックと同じ保存ロジックを共有するにゃ
+    elabCommand (← `(
+      def servaStatum : IO Unit := do
+        let _domus ← UkaLean.domusObtinere
+        let _via := _domus ++ "/ghost_status.bin"
+        let _paria ← UkaLean.executareScripturam $terminusServandi
+        UkaLean.scribeMappam _via _paria))
+
     -- 全體を一括生成するにゃん♪
+    -- onExire は servaStatum を呼ぶだけにゃ（コード重複排除にゃん♪）
     elabCommand (← `(
       initialize (UkaLean.registraShioriEx
         $terminusTractatorum
@@ -180,11 +192,7 @@ elab "construe" : command => do
             let _paria ← UkaLean.legereMappam _via
             UkaLean.executareLecturam _paria $terminusOnerandi
           catch _ => pure ()))
-        (some (do
-          let _domus ← UkaLean.domusObtinere
-          let _via := _domus ++ "/ghost_status.bin"
-          let _paria ← UkaLean.executareScripturam $terminusServandi
-          UkaLean.scribeMappam _via _paria)))
+        (some servaStatum))
     ))
 
 end UkaLean

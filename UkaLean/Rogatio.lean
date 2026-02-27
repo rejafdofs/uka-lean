@@ -121,7 +121,7 @@ def interpreta (s : String) : Except String Rogatio := do
       | none => pure ()
 
     -- 配列を構築するにゃん
-    let mut referentiae := Array.mkArray maximumIndex ""
+    let mut referentiae := (List.replicate maximumIndex "").toArray
     for (n, v) in pariaNumerata do
       if h : n < referentiae.size then
         referentiae := referentiae.set n v
