@@ -195,6 +195,54 @@ construe
 
 ---
 
+## 無作爲選擇 (Fortuita) — ランダムトーク支援
+
+ランダムに複數の文字列から一つを選ぶ關數にゃ。ゴーストのランダムトークに便利にゃん♪
+
+| 關數 | 型 | 意味 |
+|---|---|---|
+| `elige optiones` | `Array String → IO String` | 配列からランダムに1つ選んで返すにゃ。空配列なら空文字列にゃ |
+| `fortuito optiones` | `Array String → SakuraIO Unit` | ランダムに1つ選んで `loqui` で表示するにゃ（`elige` + `loqui` の便利關數にゃん） |
+
+使用例:
+
+```lean
+-- fortuito: 選んで即表示にゃ
+eventum "OnBoot" fun _ => do
+  sakura; superficies 0
+  fortuito #["やっほー！", "こんにちは！", "おはよう！"]
+  finis
+
+-- elige: 値を使ってろじっくを分岐するにゃ
+eventum "OnMouseDoubleClick" fun _ => do
+  let reaction ← elige #["嬉しい", "くすぐったい", "びっくり"]
+  sakura; superficies 0
+  loqui s!"{reaction}にゃ！"
+  finis
+```
+
+---
+
+## 即時保存 (servaStatum) — 事象處理中の變數保存
+
+`construe` が自動生成する `servaStatum : IO Unit` を使へば、事象處理の途中でも `perpetua` 變數を保存できるにゃ。
+SSP がクラッシュしても大事なダータが失はれにゃいにゃん♪
+
+```lean
+eventum "OnBoot" fun _ => do
+  numerusSalutationum.renovare (· + 1)
+  servaStatum                    -- ← ここで即時保存にゃ！
+  sakura; superficies 0
+  loqui s!"起動 {← numerusSalutationum.obtinere} 囘目にゃん♪"
+  finis
+```
+
+- `perpetua` 變數が1つでもあれば `construe` が自動で `def servaStatum` を生成するにゃ
+- `perpetua` 變數がなければ `servaStatum` は何もしにゃい `pure ()` になるにゃ
+- 終了時の保存（`onExire`）も内部で `servaStatum` を呼ぶやうになったので、保存ろじっくの重複がなくなったにゃん♪
+
+---
+
 ## SakuraScriptum 命令一覽 (Mandata)
 
 `open UkaLean Sakura` してから使ふにゃ。
@@ -362,6 +410,21 @@ uka.lean/
 │   └── Exemplum.lean           ← 全事象(eventum)の網羅的實裝例
 ├── procurator/                 ← ★ 代理(procurator)の動的連結ビブリオテーカ( Rust 製 )
 ```
+
+---
+
+## 最適化記錄 (Optimizatio)
+
+以下の最適化を施したにゃ:
+
+### `evadeTextus` の文字列構築改善 (`SakuraScriptum.lean`)
+SakuraScriptum の特殊文字遁走處理で、通常文字の追加を `String.ofList [c]`（毎囘リスト生成 + 文字列變換）から `acc.push c`（1文字直接追加）に變更したにゃ。文字列が長いほど效果が出るにゃん♪
+
+### `executareScripturam` の O(n²) → O(n) 改善 (`StatusPermanens.lean`)
+永続化の書出處理で、リストの末尾に `++` で追加してゐたのを、先頭に `::` で追加して最後に `.reverse` する方式に變更したにゃ。`++` はリスト全體を毎囘コピーするので O(n²) だったのが、O(n) になったにゃん♪
+
+### `Rogatio.lean` の配列構築簡素化
+`referentiae` 配列の初期化を手動ループから `(List.replicate maximumIndex "").toArray` に變更したにゃ。すっきりにゃん♪
 
 ---
 
