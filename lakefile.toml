@@ -1,4 +1,4 @@
-name = "uka-lean"
+name = "PuraShiori"
 version = "0.1.0"
 description = "Lean 4 製 SHIORI/3.0 栞(Ukagaka ghost)ビブリオテーカ(bibliotheca)"
 keywords = ["ukagaka", "shiori", "ghost", "sakura-script"]
@@ -14,15 +14,15 @@ rev = "main"
 
 # ライブラリ本體にゃん。Exemplum（使用例）は含めにゃいにゃ
 [[lean_lib]]
-name = "UkaLean"
+name = "PuraShiori"
 globs = [
-  "UkaLean",
-  "UkaLean.Protocollum",
-  "UkaLean.SakuraScriptum",
-  "UkaLean.Rogatio",
-  "UkaLean.Responsum",
-  "UkaLean.Nuculum",
-  "UkaLean.Exporta",
-  "UkaLean.StatusPermanens",
-  "UkaLean.Syntaxis",
+  "PuraShiori",
+  "PuraShiori.Protocollum",
+  "PuraShiori.SakuraScriptum",
+  "PuraShiori.Rogatio",
+  "PuraShiori.Responsum",
+  "PuraShiori.Nuculum",
+  "PuraShiori.Exporta",
+  "PuraShiori.StatusPermanens",
+  "PuraShiori.Syntaxis",
 ]

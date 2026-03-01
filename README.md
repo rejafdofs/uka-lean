@@ -1,20 +1,22 @@
-# UkaLean — Lean 4 製 SHIORI/3.0 栞ビブリオテーカ(bibliotheca)
+# うちのこゴースト化用lean SHIORi
 
-Lean 4 でうかがか(Ukagaka)の栞(shiori)を書くためのビブリオテーカにゃ。
-`do` 記法で型安全に SakuraScriptum を組み立てられるにゃん♪
+開發者の大切な「うちの子」を、Lean 4 の純粹（ピュア）な論理（ロギカ / logica）によって伺か（Ukagaka）の幻影（ゴースト / ghost）として受肉させる爲の栞（shiori）ビブリオテーカ(bibliotheca)にゃん♪
 
-識別子はラテン語で統一されてゐるにゃ。
+「うちの子とお話ししてみたい……」
+そんな夢を、型安全且つ堅牢なプログランマ(programma)で葉へる爲の基盤(basis)にゃ！
+`do` 記法を使ひ、直感的に SakuraScriptum を組み立てられるにゃん♪
+識別子は全てラテン語で統一されてゐるにゃ。
 
 ---
 
-## クイックスタート (Inceptum Celer)
+## はじめに (Introductio)
 
 ### 前提 (Praemissa)
 
-- [Lean 4 / elan](https://leanprover.github.io/lean4/doc/setup.html)（Lake 附属にゃ）
+- [Lean 4 / elan](https://leanprover.github.io/lean4/doc/setup.html)（Lake 附屬にゃ）
 - Windows 環境（代理の動的連結ビブリオテーカ `shiori.dll` を動かすのに必要にゃ）
 
-### ① 新規 Lake プロヱクトゥム(proiectum)を作るにゃ
+### ① 新規の Lake プロヱクトゥム(proiectum)を作るにゃ
 
 ```bash
 lake new my-ghost
@@ -23,14 +25,14 @@ cd my-ghost
 
 ### ② `lakefile.toml` に `require` を追記するにゃ
 
-```lean
+```toml
 name = "my-ghost"
 version = "0.1.0"
 
 [[require]]
 git = "https://github.com/rejafdofs/uka-lean"
-rev = "master"
-name = "uka-lean"
+rev = "main"
+name = "うちのこゴースト化用lean SHIORi"
 
 [[lean_lib]]
 name = "Ghost"
@@ -40,14 +42,14 @@ name = "ghost"
 root = "Main"
 ```
 
-### ③ `Main.lean` を書くにゃ
+### ③ `Main.lean` でうちの子の振る舞ひを書くにゃ
 
 `ghost.exe` の實行開始點(punctum initii)として、事象(eventum)と `construe`、そして `main` を記述するにゃ:
 
 ```lean
 -- Main.lean
-import UkaLean
-open UkaLean Sakura
+import PuraShiori
+open PuraShiori Sakura
 
 varia perpetua numerusSalutationum : Nat := 0
 
@@ -71,19 +73,19 @@ eventum "OnClose" fun _ => do
 
 construe
 
-def main : IO Unit := UkaLean.loopPrincipalis
+def main : IO Unit := PuraShiori.loopPrincipalis
 ```
 
 ### ④ 構築(aedificatio)して實行體(exsecutabile) `ghost.exe` を作るにゃ
 
-以下をゴーストのプロヱクトゥム・ルート（`lakefile.toml` がある場所）で實行するにゃ。
+以下をゴーストのプロヱクトゥム・ルート（`lakefile.toml` が有る場所）で實行するにゃ。
 
 ```bash
 lake update
 lake build ghost
 ```
 
-完成した `.lake/build/bin/ghost.exe` の寫し(copia)を作成して次に進むにゃ！
+完成した `.lake/build/bin/ghost.exe` の寫し(copia)を作成して、次に進むにゃ！
 
 ### ⑤ 代理(procurator) `shiori.dll` を入手して配置するにゃ
 
@@ -101,42 +103,34 @@ SSP/
         └── ghost/
             └── master/
                 ├── shiori.dll        ← ★ SSP から直接讀まれて本體に要求(rogatio)を渡す代理にゃ
-                ├── ghost.exe         ← ★ 本體にゃ（Lean 構築物）
+                ├── ghost.exe         ← ★ うちの子の本體にゃ（Lean 構築物）
                 └── ghost_status.bin  ← 永続化ダータ（自動生成にゃ）
 ```
 
 ---
 
-## 代理 (Procurator) の仕組
-
-Lean 4 は 64-bit の實行體に轉換されるにゃ。一方、SSP は 32-bit アッパラートゥス(apparatus)にゃので、そのまゝでは讀み込めにゃいにゃん…。
-そのため、32-bit の動的連結ビブリオテーカとして振る舞ふ **代理 (procurator)** が必要になるにゃ。
-
-そこで、32-bit の SSP と 64-bit の Lean 實行體を橋渡しする自前の代理ファスキクルス(fasciculus) `shiori.dll` （Rust製）を準備したにゃん♪
-`shiori.dll` が SSP と通信し、そこから `ghost.exe` (Lean 製の 64-bit プロケッスス) を呼び出して標準入出力でパイプ(fistula)直結通信する仕組にゃ！これで面倒な C 言語による中繼や煩雜な構築作業の苦痛はもう存在しにゃいにゃん♪
-
----
-
 ## `Ghost.lean` の書き方
 
-### `varia` — 全域變數(variabilis)の宣言
+### `varia` — 記憶（全域變數 / variabilis）の宣言
+
+うちの子の記憶を安全に永続化させるにゃ♪
 
 ```lean
-varia perpetua   名前 : 型 := 初期値   -- 終了時に保存・起動時に復元するにゃ
-varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ（保存しにゃい）
+varia perpetua   名前 : 型 := 初期値   -- 終了時に保存・起動時に復元する記憶にゃ
+varia temporaria 名前 : 型 := 初期値   -- 起動中だけ使ふ一時的にゃ記憶（保存しにゃい）
 ```
 
 | 種類 | `perpetua` | `temporaria` |
 |---|---|---|
 | 保存先 | `{ghost}/ghost_status.bin` | なし |
 | 起動時 | ファスキクルスから復元 | 初期値から始まる |
-| 用途 | 起動囘數・設定・フラグ等 | 今囘だけ使ふ情報 |
+| 用途 | 起動囘數・親密度・フラグ等 | 今囘だけ使ふ情報 |
 
 使へる型: `Nat` `Int` `Bool` `String` `Float` 等（`StatusPermanens` クラッシス(classis)の實体(instantia)にゃ）
 
-**型安全な永続化にゃ♪**
+**型安全にゃ永続化にゃ♪**
 保存時に型を識別する `typusTag`（文字列）も一緒に保存するにゃ。
-更新で變數の型が變はっても、タグが不一致なら安全に讀み飛ばされるにゃん。
+更新で變數の型が變はつても、タグが不一致なら安全に讀み飛ばされるから、うちの子の記憶が壞れる心配はにゃいにゃん。
 
 變數は `IO.Ref` として展開されるにゃ。處理器(tractator)の中から直接使へるにゃ:
 
@@ -148,7 +142,9 @@ numerusSalutationum.renovare (· + 1)         -- 更新(renovare)
 
 ---
 
-### `eventum` — 事象處理器(tractator)の宣言
+### `eventum` — うちの子の反應（事象處理器 / tractator）の宣言
+
+うちの子がどう反應するかを記述する箇所にゃ！
 
 ```lean
 eventum "事象名" fun rogatio => do
@@ -180,24 +176,23 @@ eventum "OnMouseDoubleClick" fun rogatio => do
 
 ---
 
-### `construe` — 栞を組み立てよ
+### `construe` — 栞の總仕上げ
 
-主ファスキクルス(fasciculus)の末尾に一度書くだけにゃ:
+主ファスキクルス(fasciculus)の末尾に一度書くだけで、うちの子に命が吹き込まれるにゃ:
 
 ```lean
 construe
 ```
 
 - `eventum` で宣言した全ての處理器を自動收集して登錄するにゃ
-- `perpetua` 變數がある場合は讀込・書出の呼戻(revocatio)も自動生成されるにゃん♪
-- 型タグ付きで保存するので、型が變はっても安全にゃ
+- `perpetua` 變數が有る場合は讀込・書出の呼戻(revocatio)も自動生成されるにゃん♪
 - 處理器内で例外(exceptio)が發生した場合は 500 Internal Server Error (內部エッロル) を返すにゃ
 
 ---
 
-## 無作爲選擇 (Fortuita) — ランダムトーク支援
+## 無作爲選擇 (Fortuita) — お喋り機能支援
 
-ランダムに複數の文字列から一つを選ぶ關數にゃ。ゴーストのランダムトークに便利にゃん♪
+うちの子が多彩なお喋りをしてくれるやうに、無作爲な言葉選びを支援するにゃ。
 
 | 關數 | 型 | 意味 |
 |---|---|---|
@@ -207,45 +202,33 @@ construe
 使用例:
 
 ```lean
--- fortuito: 選んで即表示にゃ
 eventum "OnBoot" fun _ => do
   sakura; superficies 0
   fortuito #["やっほー！", "こんにちは！", "おはよう！"]
-  finis
-
--- elige: 値を使ってろじっくを分岐するにゃ
-eventum "OnMouseDoubleClick" fun _ => do
-  let reaction ← elige #["嬉しい", "くすぐったい", "びっくり"]
-  sakura; superficies 0
-  loqui s!"{reaction}にゃ！"
   finis
 ```
 
 ---
 
-## 即時保存 (servaStatum) — 事象處理中の變數保存
+## 即時保存 (servaStatum) — 記憶の手動保存
 
-`construe` が自動生成する `servaStatum : IO Unit` を使へば、事象處理の途中でも `perpetua` 變數を保存できるにゃ。
-SSP がクラッシュしても大事なダータが失はれにゃいにゃん♪
+`construe` が自動生成する `servaStatum : IO Unit` を使へば、事象處理の途中でも何時でも `perpetua` 變數を保存できるにゃ。
+SSP がクラッシュしてもうちの子の大事な記憶が保たれるやうに、適宜保存すると安心にゃん♪
 
 ```lean
 eventum "OnBoot" fun _ => do
   numerusSalutationum.renovare (· + 1)
-  servaStatum                    -- ← ここで即時保存にゃ！
+  servaStatum                    -- ← 兹で即時保存にゃ！
   sakura; superficies 0
   loqui s!"起動 {← numerusSalutationum.obtinere} 囘目にゃん♪"
   finis
 ```
 
-- `perpetua` 變數が1つでもあれば `construe` が自動で `def servaStatum` を生成するにゃ
-- `perpetua` 變數がなければ `servaStatum` は何もしにゃい `pure ()` になるにゃ
-- 終了時の保存（`onExire`）も内部で `servaStatum` を呼ぶやうになったので、保存ろじっくの重複がなくなったにゃん♪
-
 ---
 
 ## SakuraScriptum 命令一覽 (Mandata)
 
-`open UkaLean Sakura` してから使ふにゃ。
+`open PuraShiori Sakura` してから使ふにゃ。
 
 ### 人格・表情 (Persona et Superficies)
 
@@ -269,7 +252,7 @@ eventum "OnBoot" fun _ => do
 | `adscribe` | `\C` | 前の吹き出しに追記 |
 | `finis` | `\e` | **スクリプトゥム終了（必須）** |
 
-### 待機・テンポ (Mora)
+### 待機・動度 (Mora)
 
 | 命令 | SakuraScriptum | 意味 |
 |---|---|---|
@@ -285,7 +268,7 @@ eventum "OnBoot" fun _ => do
 |---|---|
 | `optio "表示名" "EventName"` | 選擇肢を追加（クリックで事象を發生）|
 | `optioEventum "表示名" "EventName" ["r0", "r1"]` | Reference 附き選擇肢 |
-| `ancora "signum"` … `fineAncora` | 錨（クリック可能な文字列）|
+| `ancora "signum"` … `fineAncora` | 錨（クリック可能にゃ文字列）|
 
 ### 書體 (Stilus)
 
@@ -299,7 +282,7 @@ eventum "OnBoot" fun _ => do
 | `altitudoLitterarum n` | `\f[height,n]` | 文字の大きさ |
 | `formaPraefinita` | `\f[default]` | 書式を既定(praefinitum)に戾す |
 
-### その他 (Ceteri)
+### 其の他 (Ceteri)
 
 | 命令 | SakuraScriptum | 意味 |
 |---|---|---|
@@ -308,7 +291,7 @@ eventum "OnBoot" fun _ => do
 | `excita "Event"` | `\![raise,Event]` | 事象を發生させる |
 | `exitus` | `\-` | ゴーストを終了させる |
 | `aperi "nexus"` | `\j[nexus]` | URL を開く |
-| `crudus "signum"` | (そのまま出力) | 生の SakuraScriptum を直接發出 |
+| `crudus "signum"` | (其のまゝ出力) | 生の SakuraScriptum を直接發出 |
 
 便利な組合せ:
 
@@ -319,21 +302,6 @@ eventum "OnBoot" fun _ => do
 
 ---
 
-## Reference 早見表
-
-主要事象の `referentiam` 番號一覽にゃ:
-
-| 事象 | ref 0 | ref 1 | ref 2 | ref 3 | ref 4 |
-|---|---|---|---|---|---|
-| `OnBoot` | 起動種別 (0=普通, 1=初囘, ...) | | | | |
-| `OnMouseDoubleClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
-| `OnMouseClick` | X座標 | Y座標 | スコープ番號 | 部位名 | |
-| `OnMinuteChange` | 時 | 分 | | | |
-| `OnSecondChange` | 時 | 分 | 秒 | | |
-| `OnChoiceSelect` | 選擇肢ID | | | | |
-
----
-
 ## 永続化ファスキクルスの形式 (Forma Datorum Permanens)
 
 `{ghost}/ghost_status.bin` に二進體(binarius)で保存されるにゃ（v2 形式）。
@@ -341,11 +309,11 @@ eventum "OnBoot" fun _ => do
 - `perpetua` 變數のみ保存・復元されるにゃ（`temporaria` は保存されにゃい）
 - ファスキクルスが搜せにゃい場合は `:= 初期値` が使はれるにゃ
 - 各定刻には `typusTag`（型の文字列識別子）が附いてゐるにゃ
-  - 型が變はった變數は安全に讀み飛ばされるにゃん♪
+  - 型が變はつた變數は安全に讀み飛ばされるにゃん♪
 
 ### 使へる型（`StatusPermanens` クラッシス(classis)の實体(instantia)あり）
 
-| 型 | `typusTag` | エンコード形式 |
+| 型 | `typusTag` | 變換形式 |
 |---|---|---|
 | `Nat` | `"Nat"` | UInt64 LE（8バイト）|
 | `Int` | `"Int"` | 二の補數 Int64 LE（8バイト）|
@@ -354,7 +322,7 @@ eventum "OnBoot" fun _ => do
 | `Float` | `"Float"` | IEEE 754 倍精度（8バイト）|
 | `UInt8/16/32/64` | `"UInt8"` 等 | 各サイズ LE |
 | `Char` | `"Char"` | UInt32 として Unicode 符號點 |
-| `ByteArray` | `"ByteArray"` | そのまま |
+| `ByteArray` | `"ByteArray"` | 其のまゝ |
 | `Option α` | `"Option(α)"` | 1バイトタグ + 中身 |
 | `List α` | `"List(α)"` | 4バイト要素數 + 各要素 |
 | `Array α` | `"Array(α)"` | `List α` と同じ |
@@ -365,8 +333,8 @@ eventum "OnBoot" fun _ => do
 `encodeField` と `decodeField` を使へば任意の構造體を實体(instantia)へと變換できるにゃん♪
 
 ```lean
-import UkaLean
-open UkaLean
+import PuraShiori
+open PuraShiori
 
 structure DatorumLusoris where
   gradus : Nat     -- 階級
@@ -385,46 +353,16 @@ instance : StatusPermanens DatorumLusoris where
     let (puncta, _)    ← decodeField b pos2
     return { gradus, nomen, puncta }
 
--- あとはいつも通りにゃ
+-- あとは何時も通りにゃ
 varia perpetua lusor : DatorumLusoris := { gradus := 1, nomen := "シロ", puncta := 0.0 }
 ```
 
 ---
 
-## ファスキクルス構成 (Structura Fasciculorum)
+## 結びに (Conclusio)
 
-```
-uka.lean/
-├── lakefile.toml
-├── UkaLean.lean                ← 根モドゥルス(modulus)（全體を再輸出）
-├── UkaLean/
-│   ├── Protocollum.lean        ← SHIORI/3.0 共通型・定數
-│   ├── SakuraScriptum.lean     ← SakuraScriptum モナド DSL
-│   ├── Rogatio.lean            ← SHIORI/3.0 要求構文解析器
-│   ├── Responsum.lean          ← SHIORI/3.0 應答構築器
-│   ├── Nuculum.lean            ← 核心骨格（Shiori 型・事象經路設定）
-│   ├── Exporta.lean            ← 內部用實行關數群
-│   ├── StatusPermanens.lean    ← 永続化型クラッシス(classis)・補助關數・逆關數定理
-│   ├── Loop.lean               ← パイプ直結通信用の小循環(circulus minor)
-│   ├── Syntaxis.lean           ← varia / eventum / construe DSL 構文擴張
-│   └── Exemplum.lean           ← 全事象(eventum)の網羅的實裝例
-├── procurator/                 ← ★ 代理(procurator)の動的連結ビブリオテーカ( Rust 製 )
-```
-
----
-
-## 最適化記錄 (Optimizatio)
-
-以下の最適化を施したにゃ:
-
-### `evadeTextus` の文字列構築改善 (`SakuraScriptum.lean`)
-SakuraScriptum の特殊文字遁走處理で、通常文字の追加を `String.ofList [c]`（毎囘リスト生成 + 文字列變換）から `acc.push c`（1文字直接追加）に變更したにゃ。文字列が長いほど效果が出るにゃん♪
-
-### `executareScripturam` の O(n²) → O(n) 改善 (`StatusPermanens.lean`)
-永続化の書出處理で、リストの末尾に `++` で追加してゐたのを、先頭に `::` で追加して最後に `.reverse` する方式に變更したにゃ。`++` はリスト全體を毎囘コピーするので O(n²) だったのが、O(n) になったにゃん♪
-
-### `Rogatio.lean` の配列構築簡素化
-`referentiae` 配列の初期化を手動ループから `(List.replicate maximumIndex "").toArray` に變更したにゃ。すっきりにゃん♪
+開發者の「うちの子」が、この Lean 製の栞(shiori)を經て、美しく健やかに息づくことを願つてゐるにゃん♪
+何處までも純粹（ピュア）で、型安全な對話の世界を楽しんでほしいにゃ！
 
 ---
 
