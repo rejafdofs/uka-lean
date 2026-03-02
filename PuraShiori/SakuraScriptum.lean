@@ -2,7 +2,7 @@
 -- ★ SakuraScript モナド DSL にゃん♪
 -- do 記法で型安全に SakuraScript を組み立てられるにゃ
 
-namespace UkaLean
+namespace PuraSiori
 
 /-- SakuraScript 構築モナドにゃん。
     文字列を蓄積する StateT で、基底モナド m を自由に選べるにゃ。
