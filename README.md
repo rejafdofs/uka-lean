@@ -1,6 +1,6 @@
-# uka.lean — 型安全な Lean 4 製 SHIORI
+# uka.lean —  Lean 4 製 SHIORI
 
-れゃちゃんの「うちの子」を、Lean 4 の純粹（ピュア）な論理によって伺か（Ukagaka）のゴーストとして受肉させる SHIORI ビブリオテーカにゃん♪
+ SHIORI ビブリオテーカにゃん♪
 
 - **型安全な永続化** — 保存→読込の往復を Lean 4 の定理として証明済みにゃ
 - **型安全な Reference 変換** — `Citatio` クラッシスが `fromRef (toRef a) = a` を保証するにゃ
